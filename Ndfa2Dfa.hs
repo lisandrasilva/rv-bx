@@ -85,4 +85,22 @@ lookupCT st sy ct v = qs !! col
         Just col  = elemIndex sy v
 
 
+reais = Ndfa "+-.123456" "ABCDEFGH" "A" "G" deltareais
 
+deltareais 'A' (Just '+') = ['B']
+deltareais 'A' (Just '-') = ['C']
+deltareais 'A' Nothing    = ['D']
+deltareais 'B' Nothing    = ['D']
+deltareais 'C' Nothing    = ['D']
+deltareais 'D' Nothing    = ['F']
+deltareais 'D' (Just '.') = ['E']
+deltareais 'E' sy         = case sy of 
+                                Just x -> if x `elem` ['0'..'9'] then ['G']
+                                          else ['H']
+                                Nothing -> ['H']
+deltareais 'F' sy         = case sy of 
+                                Just x -> if x `elem` ['0'..'9'] then ['D','G']
+                                          else ['H']
+                                Nothing -> ['H']
+deltareais 'G' Nothing    = ['E']
+deltareais _ _ = ['H']
