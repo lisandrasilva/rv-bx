@@ -88,6 +88,75 @@ dfaaccept' :: Eq st => Dfa st sy -> [sy] -> Bool
 dfaaccept' (Dfa v q s z delta) simb = foldl delta s simb `elem` z
 
 
+realExpReg =  (Optional ((Literal '-') `Or` (Literal '+')))
+              `Then` (Star digitos) 
+              `Then` (Optional (Literal '.')) 
+              `Then` (OneOrMore digitos)
+
+realDfa = Dfa ['+','-','.','0','1','2','3','4','5','6','7','8','9']
+              ['A','B','C','D','E'] 
+              'A'
+              ['C','E']
+              deltaReal
+
+deltaReal 'A' '+' = 'B'
+deltaReal 'A' '-' = 'B' 
+deltaReal 'A' '0' = 'C'
+deltaReal 'A' '1' = 'C'
+deltaReal 'A' '2' = 'C'
+deltaReal 'A' '3' = 'C'
+deltaReal 'A' '4' = 'C'
+deltaReal 'A' '5' = 'C'
+deltaReal 'A' '6' = 'C'
+deltaReal 'A' '7' = 'C'
+deltaReal 'A' '8' = 'C'
+deltaReal 'A' '9' = 'C'
+
+deltaReal 'B' '0' = 'C'
+deltaReal 'B' '1' = 'C'
+deltaReal 'B' '2' = 'C'
+deltaReal 'B' '3' = 'C'
+deltaReal 'B' '4' = 'C'
+deltaReal 'B' '5' = 'C'
+deltaReal 'B' '6' = 'C'
+deltaReal 'B' '7' = 'C'
+deltaReal 'B' '8' = 'C'
+deltaReal 'B' '9' = 'C'
+
+deltaReal 'C' '0' = 'C'
+deltaReal 'C' '1' = 'C'
+deltaReal 'C' '2' = 'C'
+deltaReal 'C' '3' = 'C'
+deltaReal 'C' '4' = 'C'
+deltaReal 'C' '5' = 'C'
+deltaReal 'C' '6' = 'C'
+deltaReal 'C' '7' = 'C'
+deltaReal 'C' '8' = 'C'
+deltaReal 'C' '9' = 'C'
+deltaReal 'C' '.' = 'D'
+deltaReal 'D' '0' = 'E'
+deltaReal 'D' '1' = 'E'
+deltaReal 'D' '2' = 'E'
+deltaReal 'D' '3' = 'E'
+deltaReal 'D' '4' = 'E'
+deltaReal 'D' '5' = 'E'
+deltaReal 'D' '6' = 'E'
+deltaReal 'D' '7' = 'E'
+deltaReal 'D' '8' = 'E'
+deltaReal 'D' '9' = 'E'
+
+deltaReal 'E' '0' = 'E'
+deltaReal 'E' '1' = 'E'
+deltaReal 'E' '2' = 'E'
+deltaReal 'E' '3' = 'E'
+deltaReal 'E' '4' = 'E'
+deltaReal 'E' '5' = 'E'
+deltaReal 'E' '6' = 'E'
+deltaReal 'E' '7' = 'E'
+deltaReal 'E' '8' = 'E'
+deltaReal 'E' '9' = 'E'
+
+
 
 
 
