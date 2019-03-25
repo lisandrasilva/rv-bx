@@ -124,7 +124,7 @@ ndfadestinationsFrom :: Ord st => (st -> Maybe sy -> [st])       -- Tansition Fu
                     -> [sy]                   -- Vocabulary
                     -> st                     -- Origin
                     -> [st]                   -- Destination States
-ndfadestinationsFrom delta v o = nub $ concat [ndfawalk delta [o] [x] | x <- v]
+ndfadestinationsFrom delta v o = nub $ concat [ndfawalk delta (epsilon_closure delta [o]) [x] | x <- v]
 
 
 ndfanumberIncomingArrows :: Ord st => (st -> Maybe sy -> [st])       -- Tansition Function
