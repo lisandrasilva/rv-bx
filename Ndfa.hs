@@ -9,6 +9,16 @@ data Ndfa st sy = Ndfa  [ sy ]  -- Vocabulary
                         [ st ]  -- The set of final states
                         (st -> Maybe sy -> [ st ] )   -- The transition function
 
+instance (Show st, Show sy) => Show (Ndfa st sy) where 
+  show (Ndfa v q s z delta) = "Vocabulary: " ++ (show v) ++ 
+                             "\nStates: " ++ (show q) ++ 
+                             "\nInit: " ++ (show s) ++
+                             "\nFinal: " ++ (show z) ++
+                             "\nDelta: " ++ show (showDelta delta q v)
+
+showDeltaNdfa :: (st -> Maybe sy -> [st]) -> [st] -> [sy] -> [(st,sy,st)]
+showDeltaNdfa d q v = [(x, y, d x (Just y) | x <- q, y <- v ] ++ [(x,'@', d x Nothing) | x <- q]
+
 delta :: Ndfa st sy -> (st -> Maybe sy -> [ st ])
 delta (Ndfa _ _ _ _ x) = x
 

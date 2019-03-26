@@ -21,6 +21,16 @@ cataRegExp rx re fl fo ft fs fm fp (Star e) = fs (cataRegExp rx re fl fo ft fs f
 cataRegExp rx re fl fo ft fs fm fp (OneOrMore e) = fm (cataRegExp rx re fl fo ft fs fm fp e)
 cataRegExp rx re fl fo ft fs fm fp (Optional e) = fp (cataRegExp rx re fl fo ft fs fm fp e)
 
+instance Show RegExp where
+  show = cataRegExp "{}"
+                    "@"
+                    (\a -> [a]) -- (:[])
+                    (\e f -> "(" ++ e ++ "|" ++ f ++ ")")
+                    (\e f -> "(" ++ e ++ f ++ ")")
+                    (\e -> "(" ++ e ++ ")*")
+                    (\e -> "(" ++ e ++ ")+")
+                    (\e -> "(" ++ e ++ ")?")
+
 zeroAsMoreBs :: RegExp
 zeroAsMoreBs =  Then  (Star (Literal 'a'))
                       (Then (Literal 'b') (Star (Literal 'b')))
@@ -41,6 +51,8 @@ digitos =  (Literal '0') `Or` (Literal '1') `Or` (Literal '2') `Or`
            (Literal '6') `Or` (Literal '7') `Or` (Literal '8') `Or`
            (Literal '9')
 
+digs = foldr1 Or (map Literal ['0'..'9'])
+
 intDenotation =  ((Literal '-') `Or` (Literal '+') `Or` Epsilon)
                  `Then` (digitos `Then` (Star digitos))
 
@@ -59,17 +71,6 @@ showRE (Then re1 re2)  = "(" ++ (showRE re1) ++ (showRE re2) ++ ")"
 showRE (Star re)       = "(" ++ (showRE re) ++ ")*"
 showRE (OneOrMore re)  = "(" ++ (showRE re) ++ ")+"
 showRE (Optional re)   = "(" ++ (showRE re) ++ ")?"
-
-
-showREcata = cataRegExp "{}"
-                    "@"
-                    (\a -> [a]) -- (:[])
-                    (\e f -> "(" ++ e ++ "|" ++ f ++ ")")
-                    (\e f -> "(" ++ e ++ f ++ ")")
-                    (\e -> "(" ++ e ++ ")*")
-                    (\e -> "(" ++ e ++ ")+")
-                    (\e -> "(" ++ e ++ ")?")
-
 
 
 matches :: RegExp -> String -> Bool

@@ -11,6 +11,17 @@ data Dfa st sy = Dfa [sy]              -- Finite set of Vocabulary Symbols
                      [st]              -- The set of final states
                      (st -> sy -> st)  -- Transition Function
 
+instance (Show st, Show sy) => Show (Dfa st sy) where 
+  show (Dfa v q s z delta) = "Vocabulary: " ++ (show v) ++ 
+                             "\nStates: " ++ (show q) ++ 
+                             "\nInit: " ++ (show s) ++
+                             "\nFinal: " ++ (show z) ++
+                             "\nDelta: " ++ show (showDelta delta q v)
+
+showDelta :: (st -> sy -> st) -> [st] -> [sy] -> [(st,sy,st)]
+showDelta d q v = [(x, y, d x y) | x <- q, y <- v ]
+
+
 a1 :: Dfa Int Char
 a1 = Dfa "ab" [1,2,3,4] 1 [3] delta
         where delta 1 'a' = 2
@@ -155,7 +166,7 @@ deltaReal 'E' '6' = 'E'
 deltaReal 'E' '7' = 'E'
 deltaReal 'E' '8' = 'E'
 deltaReal 'E' '9' = 'E'
-
+deltaReal _ _ = 'E'
 
 
 
