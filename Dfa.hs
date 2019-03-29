@@ -4,6 +4,7 @@ import Data.Char
 import RegExp
 import Data.Maybe
 import Control.Monad
+import Data.List
 
 data Dfa st sy = Dfa [sy]              -- Finite set of Vocabulary Symbols
                      [st]              -- Finite set of states
@@ -11,15 +12,27 @@ data Dfa st sy = Dfa [sy]              -- Finite set of Vocabulary Symbols
                      [st]              -- The set of final states
                      (st -> sy -> st)  -- Transition Function
 
-instance (Show st, Show sy) => Show (Dfa st sy) where 
-  show (Dfa v q s z delta) = "Vocabulary: " ++ (show v) ++ 
-                             "\nStates: " ++ (show q) ++ 
-                             "\nInit: " ++ (show s) ++
-                             "\nFinal: " ++ (show z) ++
-                             "\nDelta: " ++ show (showDelta delta q v)
 
-showDelta :: (st -> sy -> st) -> [st] -> [sy] -> [(st,sy,st)]
-showDelta d q v = [(x, y, d x y) | x <- q, y <- v ]
+instance (Show st, Show sy) => Show (Dfa st sy) where
+    show (Dfa voc stats start final delta) 
+        =    "Vocabulary:   " ++ showLComma voc 
+        ++ "\nStates:       " ++ showLComma stats 
+        ++ "\nStart state:  " ++ show start
+        ++ "\nFinal states: " ++ showLComma final
+        ++ "\nTransitions:  " ++ showTab [((y,x),delta y x) 
+                                         | y <- stats, x <- voc]
+
+
+showTab :: (Show a, Show b) => [(a,b)] -> String
+showTab = concat 
+        . (intersperse "\n") 
+        . (indent "              ")
+        . (map (\(x,y) -> show x ++ " -> " ++ show y))
+
+indent pat l = zipWith (++) ("":(repeat pat)) l
+
+showLComma :: Show a => [a] -> String
+showLComma l = concat (intersperse ", " (map show l))
 
 
 a1 :: Dfa Int Char
