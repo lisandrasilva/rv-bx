@@ -13,16 +13,6 @@ data Dfa st sy = Dfa [sy]              -- Finite set of Vocabulary Symbols
                      (st -> sy -> st)  -- Transition Function
 
 
-instance (Show st, Show sy) => Show (Dfa st sy) where
-    show (Dfa voc stats start final delta) 
-        =    "Vocabulary:   " ++ showLComma voc 
-        ++ "\nStates:       " ++ showLComma stats 
-        ++ "\nStart state:  " ++ show start
-        ++ "\nFinal states: " ++ showLComma final
-        ++ "\nTransitions:  " ++ showTab [((y,x),delta y x) 
-                                         | y <- stats, x <- voc]
-
-
 showTab :: (Show a, Show b) => [(a,b)] -> String
 showTab = concat 
         . (intersperse "\n") 
