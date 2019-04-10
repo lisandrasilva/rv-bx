@@ -5,6 +5,7 @@ import RegExp
 import Dfa
 import Ndfa
 import Ndfa2Dfa
+import RegExp2Ndfa
 
 data NdfaT st sy = NdfaT  [ sy ]  -- Vocabulary
                           [ st ]  -- Finite set of states
@@ -19,16 +20,16 @@ data DfaT st sy = DfaT [sy]           -- Finite set of Vocabulary Symbols
                        [((st,sy),st)] -- Tabulated Transition Function
 
 
-instance (Show st, Show sy) => Show (Dfa st sy) where
+instance (Show st, Show sy, Eq st) => Show (Dfa st sy) where
      show = fa2Str
 
-instance (Show st, Show sy) => Show (DfaT st sy) where
+instance (Show st, Show sy, Eq st) => Show (DfaT st sy) where
      show = fa2Str
 
-instance (Show st, Show sy) => Show (Ndfa st sy) where
+instance (Show st, Show sy, Eq st) => Show (Ndfa st sy) where
      show = fa2Str
 
-instance (Show st, Show sy) => Show (NdfaT st sy) where
+instance (Show st, Show sy, Eq st) => Show (NdfaT st sy) where
      show = fa2Str
 
 a1 :: Dfa Int Char
@@ -68,6 +69,7 @@ nd1T = NdfaT "bdi;e" [1,2,3,4,5] [1] [5] delta
                       ,((4,Nothing), [2])
                       ]
 
+
 ex = Ndfa "ab" "ABCDE" "A" "D" delta
         where delta 'A' (Just 'a') = "BC"
               delta 'A' Nothing = "D"
@@ -78,7 +80,7 @@ ex = Ndfa "ab" "ABCDE" "A" "D" delta
 ---------------
 
 class FiniteAut a where
-  injNdfaT :: a st sy -> NdfaT st sy
+  injNdfaT :: (Eq st) => a st sy -> NdfaT st sy
 
 instance FiniteAut NdfaT where
   injNdfaT = id 
@@ -86,8 +88,10 @@ instance FiniteAut NdfaT where
 instance FiniteAut Ndfa where
   -- injNdfaT :: Ndfa st sy -> NdfaT st sy
      injNdfaT (Ndfa voc st start final delta)
-      = NdfaT voc st start final (tab delta st (Nothing:map Just voc))
-        where tab f x y = [((i,a),f i a) | i <- x, a <- y]
+      = NdfaT voc sts start final (tab delta st (Nothing:map Just voc))
+        where tab f x y = -- filter (\((_,_),c) -> not $ elem (last x) c) 
+                          [((i,a),f i a) | i <- x, a <- y]
+              sts = init st
 
 instance FiniteAut Dfa where
   -- injNdfaT :: Dfa st sy -> NdfaT st sy
@@ -102,7 +106,7 @@ instance FiniteAut DfaT where
 
 ---------------
 
-fa2Str :: (FiniteAut t, Show st, Show sy) => t st sy -> String
+fa2Str :: (FiniteAut t, Show st, Show sy, Eq st) => t st sy -> String
 fa2Str a = 
      let (NdfaT voc stats starts final delta) = injNdfaT a
          indent pat l = zipWith (++) ("":(repeat pat)) l
@@ -122,11 +126,12 @@ fa2Str a =
 fa2Dot :: (FiniteAut t, Show st, Show sy, Eq st) => t st sy -> String
 fa2Dot a = header ++ states ++ initials ++ transitions ++ footer
     where (NdfaT voc stats start final delta) = injNdfaT a
-          header = unlines ["digraph G {"
+          header = unlines [ "digraph G {"
                            , "    rankdir=LR;"
-                           ,"    fontname=\"sans-serif\";"
+                           , "    fontname=\"sans-serif\";"
                            , "    penwidth=\"0.1\";"
                            , "    edge [comment=\"Wildcard edge\", "
+                           , "          shape=\"circle\", "
                            , "          fontname=\"sans-serif\", "
                            , "          fontsize=10, "
                            , "          colorscheme=\"blues3\"," 
@@ -143,12 +148,12 @@ fa2Dot a = header ++ states ++ initials ++ transitions ++ footer
                            , "            fillcolor=\"white\"," 
                            , "            penwidth=\"0.0\"];"
                            ]
-          footer = unlines ["}"
+          footer = unlines [ "}"
                            ]
           finalstates = unlines $ map ((\x-> "    " ++ x ++ " [shape=\"doublecircle\"];").showWithQuote) final
-          nonfinalstates = unlines $ map ((\x-> "    " ++ x ++ ";").showWithQuote) ((init stats) \\ final)
+          nonfinalstates = unlines $ map ((\x-> "    " ++ x ++ ";").showWithQuote) (stats \\ final)
           states = nonfinalstates ++ finalstates
-          transitions = unlines $ map transition $ filter (\((_,_),c') -> (c' /= last stats)) [((a,b),c') | ((a,b),c) <- delta , c' <- c]
+          transitions = unlines $ map transition [((a,b),c') | ((a,b),c) <- delta , c' <- c]
           transition ((i,l),f) = "    " 
                           ++ showWithQuote i 
                           ++ " -> "
@@ -164,14 +169,24 @@ fa2Dot a = header ++ states ++ initials ++ transitions ++ footer
 showWithQuote :: Show a => a -> String
 showWithQuote x = "\"" ++ show x ++ "\""
 
+subsdoublequote :: String -> String
+subsdoublequote = subs True 
+  where subs True  ('\"':'\"':t) = '\"':'\\':'\"':subs False t
+        subs False ('\"':'\"':t) = '\\':'\"':'\"':subs True t
+        subs flag (h:t) = h:(subs flag t)
+        subs _ [] = []     
+
 showWithQuoteM :: Show a => Maybe a -> String
 showWithQuoteM (Just x) = "\"" ++ show x ++ "\""
 showWithQuoteM Nothing  = "\"@\""
 
-displayFA d = do writeFile "__.dot" (fa2Dot d)
+
+displayFA d = do writeFile "__.dot" (subsdoublequote (fa2Dot d))
                  system "dot -Tpng -O __.dot"
                  system "open __.dot.png"
 
+displayFAS ds = do writeFile "__.dot" (subsdoublequote $ unlines $ (map fa2Dot) $ ds)
+      
 ------------------
 
 revNTab :: (Eq st, Eq sy) => [((st,Maybe sy),[st])] -> [((st,Maybe sy),[st])]
@@ -188,3 +203,37 @@ revAut :: (FiniteAut t, Eq st, Eq sy)=> t st sy -> NdfaT st sy
 revAut a = 
      let (NdfaT voc stats starts final delta) = injNdfaT a
      in NdfaT voc stats final starts (revNTab delta)
+
+-----------------------------
+
+normStates :: (FiniteAut t, Eq st, Eq sy, Ord st) => t st sy -> NdfaT Int sy
+normStates a = 
+     let (NdfaT voc stats starts final delta) = injNdfaT a
+         stats' = [1..length stats]
+         conversion = zip stats stats'
+         convert s = let (Just s') = lookup s conversion
+                     in s'
+         final' = map convert final
+         starts' = map convert starts
+         delta' = [((convert x,y), map convert z) | ((x,y),z) <- delta]  
+     in NdfaT voc stats' starts' final' delta'
+
+er1 = Or (Star (Literal 'a')) (Star (Literal 'b'))
+
+showProc e = do let fname = "/Users/lisandrasilva/Desktop/NII/RV/rv-bx/"
+                putStrLn (showRE e)
+                let an = regExp2Ndfa e
+                let n  = fa2Dot an
+                let ad = ndfa2dfa an
+                let d  = fa2Dot ad
+                let dnn = normStates ad
+                let dn = fa2Dot dnn
+                writeFile (fname ++ "N.dot") (subsdoublequote n)
+                writeFile (fname ++ "D.dot") (subsdoublequote d)
+                writeFile (fname ++ "DN.dot") (subsdoublequote dn)
+                system ("dot -Tpng -O " ++ fname ++"N.dot")
+                system ("dot -Tpng -O " ++ fname ++"D.dot")
+                system ("dot -Tpng -O " ++ fname ++"DN.dot")
+                system ("open " ++ fname ++ "N.dot.png")
+                system ("open " ++ fname ++ "D.dot.png")
+                system ("open " ++ fname ++ "DN.dot.png")

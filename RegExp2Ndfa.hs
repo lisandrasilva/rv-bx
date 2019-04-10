@@ -99,7 +99,3 @@ dfaInt = Dfa asciiTable [1,2,3,4,5] 1 [4] delta
                     delta 1 '-' = 3
                     delta _ sy  = if sy `elem` ['0'..'9'] then 4
                                   else 5
-
-
-
-
