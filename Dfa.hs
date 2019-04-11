@@ -1,5 +1,6 @@
 module Dfa where
 
+import Data.List
 import Data.Char
 import RegExp
 
@@ -47,6 +48,11 @@ dfaaccept a sentence =
            (f,remain) = tableWalk delta s sentence
        in (null remain) && (f `elem` z)
 
+
+dfaAddTransition :: (Eq st, Eq sy) => DfaT st sy -> ((st,sy),st) -> DfaT st sy
+dfaAddTransition (DfaT v q s z delta) ((d,y),o) = case lookup (d,y) delta of
+                                            Just s' -> (DfaT v q s z delta)
+                                            Nothing -> (DfaT (v `union` [y]) (q `union` [d,o]) s z (((d,y),o):delta))
 
 {- }
 destinationsFrom :: (st -> sy -> st)       -- Tansition Function
