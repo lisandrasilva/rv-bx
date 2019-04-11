@@ -1,6 +1,6 @@
 module Transform where
 
---import Data.List
+import Data.List
 import System.Process
 import RegExp
 import Dfa
@@ -37,6 +37,9 @@ nd1T = NdfaT "bdi;e" [1,2,3,4,5] [1] [5] delta
 
 er1 = Or (Star (Literal 'a')) (Star (Literal 'b'))
 
+regExp2dfa :: RegExp -> DfaT [Int] Char
+regExp2dfa re = n2D $ regExp2Ndfa re
+
 showProc e = do let fname = "__"
                 putStrLn (showRE e)
                 let an = regExp2Ndfa e
@@ -54,3 +57,25 @@ showProc e = do let fname = "__"
                 system ("open " ++ fname ++ "N.dot.png")
                 system ("open " ++ fname ++ "D.dot.png")
                 --system ("open " ++ fname ++ "DN.dot.png")
+
+
+--getModification :: [((st,Maybe sy),[ st ])] -> [(([st],sy),[st])] -> Maybe (([st],sy),[st])
+getModification _ [] = Nothing
+getModification delta (((os,y),ds):xs) = if sort [eclosureSet delta [] (from delta s y) | s <- os] == sort ds 
+                                            then getModification delta xs
+                                         else Just ((os,y),ds)
+
+
+-- Preciso do s2 porque o e-closure do NDFA == s2 e preciso do z2 porque todos os estados em q2 têm que ter um caminho até z2
+-- putNdfa :: NdfaT st sy -> DfaT st sy -> NdfaT st sy
+{- putNdfa (NdfaT v1 q1 s1 z1 delta1) (DfaT v2 q2 s2 z2 delta2) = case getModification delta1 delta2 of 
+                                                                Just ((o,y),d) -> putNdfa (ndfaAddTransitions (NdfaT v1 q1 s1 z1 delta1) ((o,y),d)) (DfaT v2 q2 s2 z2 delta2)
+                                                                Nothing -> (NdfaT v1 q1 s1 z1 delta1)
+-}
+
+
+-- 1º - validar que o DFA está bem construído
+-- 2º Verificar as alterações em relação ao primeiro
+-- 3º definir um put para trabalhar as alterações
+
+
