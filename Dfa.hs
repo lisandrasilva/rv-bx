@@ -49,13 +49,20 @@ dfaaccept a sentence =
        in (null remain) && (f `elem` z)
 
 
+
+-- Alterar para receber uma flag para o caso de se querer que o estado seja final
 dfaAddTransition :: (Eq st, Eq sy) => DfaT st sy -> ((st,sy),st) -> DfaT st sy
-dfaAddTransition (DfaT v q s z delta) ((d,y),o) = case lookup (d,y) delta of
-                                            Just s' -> (DfaT v q s z delta)
-                                            Nothing -> (DfaT (v `union` [y]) (q `union` [d,o]) s z (((d,y),o):delta))
+dfaAddTransition dfa@(DfaT v q s z delta) ((d,y),o) = case lookup (d,y) delta of
+                                            Just s' -> dfa
+                                            Nothing -> (DfaT (nub(v `union` [y])) (q `union` [d,o]) s z (delta ++ [((d,y),o)]))
+
+dfaAddTransitions :: (Eq st, Eq sy) => DfaT st sy -> [((st,sy),st)] -> DfaT st sy
+dfaAddTransitions dfa [] = dfa
+dfaAddTransitions dfa@(DfaT v q s z delta) (((d,y),o):xs) = let (DfaT v1 q1 s1 z1 delta1) = dfaAddTransitions dfa xs
+                                                        in (DfaT v1 q1 s1 z1 (delta ++ delta1))
 
 {- }
-destinationsFrom :: (st -> sy -> st)       -- Tansition Function
+destinationsFrom :: (st -> sy -> st)       -- Transition Function
                  -> [sy]                   -- Vocabulary
                  -> st                     -- Origin
                  -> [st]                   -- Destination States

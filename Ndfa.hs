@@ -189,7 +189,7 @@ n2D a = let (NdfaT voc stats starts finals delta) = injNDFA a
             starts' = eclosureSet delta [] starts
             finals' = [x | x<-stats', not(null(x `intersect` finals))]
             (stats',delta') = buildTable delta [] [] [starts']
-        in DfaT voc stats' starts' finals' delta'
+        in DfaT voc stats' starts' finals' (nub delta')
 
 
 
@@ -227,6 +227,13 @@ buildTable delta states tab (s:ss) = buildTable delta states' tab' (ss ++ new)
            new            =  ((nub (map snd newtransitions)) \\ states') \\ ss 
 
 from d ls x = sort [s' | ((i,Just y),s) <- d, y == x, i `elem` ls, s' <- s]
+
+
+-- ver os que são novos estados e os que são estados finais
+-- ir buscar todas as transições que já existem de 'o' por y. e acrescentar lá os ds
+ndfaAddTransitions (NdfaT v1 q1 s1 z1 delta) ((os,y),ds) = let newtransitions = [((o,Just y),ds) | o <- os]
+                                                               newstates = [s | s <- (os `union` ds), not (s `elem` q1)]
+                                                            in (NdfaT v1 (q1 ++ newstates) s1 z1 (delta ++ newtransitions))
            
 
 --isJust :: Maybe a -> Bool
