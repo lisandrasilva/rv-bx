@@ -10,6 +10,7 @@ data RegExp  =  Empty
              |  Optional RegExp
          deriving Eq
 
+{- Definition of catamorphism for the Data Type RegExp-}
 cataRegExp :: t       -- Empty
      -> t             -- Epsilon
      -> (Char -> t)   -- Literal Char
@@ -31,6 +32,7 @@ cataRegExp rx re fl fo ft fs fm fp (Star e)      = fs (cataRegExp rx re fl fo ft
 cataRegExp rx re fl fo ft fs fm fp (OneOrMore e) = fm (cataRegExp rx re fl fo ft fs fm fp e)
 cataRegExp rx re fl fo ft fs fm fp (Optional e)  = fp (cataRegExp rx re fl fo ft fs fm fp e)
 
+{- Inductive definition of show -}
 showRE :: RegExp -> [Char]
 showRE = cataRegExp "{}"
                     "@"
@@ -44,6 +46,7 @@ showRE = cataRegExp "{}"
 instance Show RegExp where
   show = showRE
 
+{- Given a RegExp and a String verify if the string belongs to the language defined by the RegExp -}
 matches :: RegExp -> String -> Bool
 matches = matches' . extREtoRE
 
@@ -53,16 +56,14 @@ matches' (Literal l) inp     = inp==[l]
 matches' (Or re1 re2) inp    = matches' re1 inp || matches' re2 inp
 matches' (Then re1 re2) inp  = or [ matches' re1 s1 && matches' re2 s2
                                   | (s1,s2) <- splits inp ]
+  where splits s = [ splitAt n s | n <- [ 0 .. length s ] ]
 matches' (Star re) inp       =  matches' Epsilon inp ||
                                 or  [ matches' re s1 && matches' (Star re) s2 
                                     | (s1,s2) <- frontSplits inp ]
+  where frontSplits s  =  [ splitAt n s | n <- [ 1 .. length s ] ]
 
-splits         :: [a] -> [ ([a],[a]) ]
-splits s       =  [ splitAt n s | n <- [ 0 .. length s ] ]
 
-frontSplits    :: [a] -> [ ([a],[a]) ]
-frontSplits s  =  [ splitAt n s | n <- [ 1 .. length s ] ]
-
+{- Definition of OneOrMore and Optional -}
 extREtoRE = cataRegExp Empty 
                        Epsilon 
                        Literal 
@@ -73,33 +74,27 @@ extREtoRE = cataRegExp Empty
                        (\e-> e `Or` Epsilon)
 
 
-finite :: RegExp -> Bool
-finite (Star re) = True
-finite (OneOrMore re) = True
-finite (Or re1 re2) = finite re1 || finite re2
-finite (Then re1 re2) = finite re1 || finite re2
-finite _ = False
-
-
+{- Number of literals in a RegExp-}
 size :: RegExp -> Int 
 size = cataRegExp 0 1 (\x -> 1) (+) (+) id id id
 
+
+
 ---- Examples
 
-
-a  = Literal 'a'
-b  = Literal 'b'
-c  = Literal 'c'
+litA  = Literal 'a'
+litB  = Literal 'b'
+litC  = Literal 'c'
 
 zeroAsMoreBs :: RegExp
-zeroAsMoreBs =  Then  (Star (Literal 'a'))
-                      (Then (Literal 'b') (Star (Literal 'b')))
+zeroAsMoreBs =  Then  (Star litA)
+                      (Then litB (Star litB))
 
-zeroAsMoreBs' = Then (Star a) (OneOrMore b)
+zeroAsMoreBs' = Then (Star litA) (OneOrMore litB)
 
-asOubs = Then (Or a b) (Star (Or a b))
+asOubs = Then (Or litA litB) (Star (Or litA litB))
 
-asOubs' = OneOrMore (a `Or` b)
+asOubs' = OneOrMore (litA `Or` litB)
 
 
 digitos =  (Literal '0') `Or` (Literal '1') `Or` (Literal '2') `Or`
