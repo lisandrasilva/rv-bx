@@ -108,6 +108,15 @@ reachableNodes delta (n:ns) acc = reachableNodes delta x (n:acc)
 -- Função para verificar que um automato está consistente ????
 -- Função para mostrar que 2 grafos são isomorfos
 
+
+
+-- ver os que são novos estados e os que são estados finais
+-- ir buscar todas as transições que já existem de 'o' por y. e acrescentar lá os ds
+ndfaAddTransitions (NdfaT v1 q1 s1 z1 delta) ((os,y),ds) = let newtransitions = [((o,Just y),ds) | o <- os]
+                                                               newstates = [s | s <- (os `union` ds), not (s `elem` q1)]
+                                                            in (NdfaT v1 (q1 ++ newstates) s1 z1 (delta ++ newtransitions))
+           
+
 dfaAddTransitions :: (Eq st, Eq sy) => DfaT st sy -> [((st,sy),st)] -> DfaT st sy
 dfaAddTransitions dfa [] = dfa
 dfaAddTransitions dfa@(DfaT v q s z delta) (((d,y),o):xs) = let (DfaT v1 q1 s1 z1 delta1) = dfaAddTransitions dfa xs
