@@ -47,17 +47,19 @@ instance NDFA DfaT where
 {- Reverts a transition table -}
 revNTab :: (Eq st, Eq sy) => [((st,sy),[st])] -> [((st,sy),[st])]
 revNTab tab = grouping [((z',y),x) | ((x,y),z) <- tab, z' <- z]
-    where -- Converts a relation into a function
-          -- grouping :: (Eq a, Eq b) => [((st,sy),st)] -> [((st,sy),[st])]
-          grouping [] = []
-          grouping (((a,b),c):t) = let (x,t') = remove (a,b) t
-                                in ((a,b),c:x):grouping t
-          -- remove :: Eq a => a -> [(a,b)] -> ([b],[(a,b)])
-          -- Ex: remove 1 [(1,3),(2,3),(1,4),(2,4)] = ([3,4],[(2,3),(2,4)])
-          remove _ [] = ([],[])
-          remove s' ((s,d):t) | s == s' = ((d:x'), t')
-                              | otherwise = (x', (s,d):t')
-              where (x',t') = remove s' t
+
+{- Converts a relation into a function -}
+grouping :: (Eq st, Eq sy) => [((st,sy),st)] -> [((st,sy),[st])]
+grouping [] = []
+grouping (((a,b),c):t) = let (x,t') = remove (a,b) t
+                      in ((a,b),c:x):grouping t
+
+-- Ex: remove 1 [(1,3),(2,3),(1,4),(2,4)] = ([3,4],[(2,3),(2,4)])
+remove :: Eq a => a -> [(a,b)] -> ([b],[(a,b)])
+remove _ [] = ([],[])
+remove s' ((s,d):t) | s == s' = ((d:x'), t')
+                    | otherwise = (x', (s,d):t')
+    where (x',t') = remove s' t
 
 {- Reverts an automaton -}
 revAut :: (NDFA t, Eq st, Eq sy)=> t st sy -> NdfaT st sy
@@ -85,17 +87,4 @@ limit :: Eq a => (a -> a) -> a -> a
 limit f s | s == next = s
           | otherwise = limit f next
             where next = f s
-
-
--- Example
--- b \ ((d + i);)^* \  e
-nd1 = NdfaT "bdi;e" [1,2,3,4,5] [1] [5] delta
-        where delta= delta1
-delta1 = [((1,'b'),[2])
-         ,((2,'d'),[3])
-         ,((2,'i'),[3])
-         ,((2,'e'),[5])
-         ,((3,';'),[4])
-         ,((4,'@'),[2])
-         ]
 
