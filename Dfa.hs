@@ -4,18 +4,22 @@ import Data.List
 import Data.Char
 import RegExp
 
+{- DFA where the transitions are defined as a function -}
 data DfaF st sy = DfaF [sy]              -- Finite set of Vocabulary Symbols
                        [st]              -- Finite set of states
                        st                -- The start state
                        [st]              -- The set of final states
                        (st -> sy -> st)  -- Transition Function
 
+{- DFA where the transitions are defined as a table -}
 data DfaT st sy = DfaT [sy]              -- Finite set of Vocabulary Symbols
                        [st]              -- Finite set of states
                        st                -- The start state
                        [st]              -- The set of final states
                        [((st,sy),st)]    -- Transition Table
 
+
+{- Converts all DFA into the tabulated version -}
 class DFA t where
   injDFA :: t states voc -> DfaT states voc
 
@@ -26,9 +30,15 @@ instance DFA DfaF where
   injDFA (DfaF voc states start finals delta) 
     = DfaT voc states start finals (tabulate delta states voc)
 
+{- Given a delta function, the states and the vocabulary computes the transition table -}
 tabulate :: (a -> b -> c) -> [a] -> [b] -> [((a,b),c)]
 tabulate f as bs = [((x,y),f x y) | x <- as, y <- bs]
 
+
+{- Given the trasitions table, an initial state and a string 'a' computes the pair (s,[a]) where:
+    - s -> the state reached with the recognized symbols
+    - a -> remaining of the list not recognized by the DFA
+-}
 tableWalk :: (Eq s, Eq a) => [((s,a),s)] -> s -> [a] -> (s,[a]) 
 tableWalk delta s [] = (s,[])
 tableWalk delta s (x:xs) = 
@@ -36,12 +46,15 @@ tableWalk delta s (x:xs) =
        Just s' -> tableWalk delta s' xs
        Nothing -> (s,(x:xs))
 
-dfawalk :: (st -> sy -> st) -> st -> [sy] -> st
-dfawalk delta s [] = s
-dfawalk delta s (x:xs) = dfawalk delta (delta s x) xs
+{- Given the transitions function, an initial state and a string 'a' computes the achieved state by 
+  the recognition of 'a'
+-}
+functionwalk :: (st -> sy -> st) -> st -> [sy] -> st
+functionwalk delta s [] = s
+functionwalk delta s (x:xs) = functionwalk delta (delta s x) xs
 
 
-
+{- Detemines if a given string belongs to the language defined by the DFA-}
 dfaaccept :: (Eq st, Eq sy, DFA t) => t st sy -> [sy] -> Bool
 dfaaccept a sentence =
        let (DfaT v q s z delta) = injDFA a 
@@ -50,45 +63,7 @@ dfaaccept a sentence =
 
 
 
--- Alterar para receber uma flag para o caso de se querer que o estado seja final
-dfaAddTransition :: (Eq st, Eq sy) => DfaT st sy -> ((st,sy),st) -> DfaT st sy
-dfaAddTransition dfa@(DfaT v q s z delta) ((d,y),o) = case lookup (d,y) delta of
-                                            Just s' -> dfa
-                                            Nothing -> (DfaT (nub(v `union` [y])) (q `union` [d,o]) s z (delta ++ [((d,y),o)]))
-
-dfaAddTransitions :: (Eq st, Eq sy) => DfaT st sy -> [((st,sy),st)] -> DfaT st sy
-dfaAddTransitions dfa [] = dfa
-dfaAddTransitions dfa@(DfaT v q s z delta) (((d,y),o):xs) = let (DfaT v1 q1 s1 z1 delta1) = dfaAddTransitions dfa xs
-                                                        in (DfaT v1 q1 s1 z1 (delta ++ delta1))
-
-{- }
-destinationsFrom :: (st -> sy -> st)       -- Transition Function
-                 -> [sy]                   -- Vocabulary
-                 -> st                     -- Origin
-                 -> [st]                   -- Destination States
-destinationsFrom delta vs o = [ delta o v | v <- vs ]
-
-
-
-numberIncomingArrows :: Eq st
-                     => (st -> sy -> st)       -- Transition Function
-                     -> [sy]                   -- Vocabulary
-                     -> [st]                   -- Set of States
-                     -> st                     -- Destination
-                     -> Int                    -- Number of Arrows
-numberIncomingArrows d vs qs dest = length  [ q
-                                            | v <- vs
-                                            , q <- qs 
-                                            , d q v == dest
-                                            ]
-
-dfaaccept' :: Eq st => Dfa st sy -> [sy] -> Bool
-dfaaccept' (Dfa v q s z delta) simb = foldl delta s simb `elem` z
-
--}
-
 -- Examples 
-
 
 a1 :: DfaT Int Char
 a1 = DfaT "ab" [1,2,3] 1 [3] delta
@@ -109,7 +84,7 @@ a2 = DfaT "abc" [1,2,3,4] 1 [4] delta
                       ,((4,'c'),4)
                       ]
 
-p2 = (a `Then` b `Then` (Star c)) `Or` c
+p2 = (litA `Then` litB `Then` (Star litC)) `Or` litC
 
 iguais inp = matches p2 inp && dfaaccept a2 inp
 
@@ -130,7 +105,6 @@ lowerLetters  = DfaF asciiTable [1,2,3] 1 [2] delta
          delta _ _                       = 3
 
 -- Predicate to define whether a ascii symbol is a lower letter or not
-
 islower    :: Char -> Bool
 islower l  = dfaaccept lowerLetters [l]
 
@@ -156,6 +130,32 @@ realDfa = DfaF ['+','-','.','0','1','2','3','4','5','6','7','8','9']
 dfaInt = DfaT ('-':'+':['0'..'9']) [1,2,3,4] 1 [4] delta
             where   delta = [((1,'+'),2),((1,'-'),3)]
                         ++ [((s,x),4) | s<-[2,3], x<- ['0'..'9'] ]
+
+{- 
+destinationsFrom :: (st -> sy -> st)       -- Transition Function
+                 -> [sy]                   -- Vocabulary
+                 -> st                     -- Origin
+                 -> [st]                   -- Destination States
+destinationsFrom delta vs o = [ delta o v | v <- vs ]
+
+
+
+numberIncomingArrows :: Eq st
+                     => (st -> sy -> st)       -- Transition Function
+                     -> [sy]                   -- Vocabulary
+                     -> [st]                   -- Set of States
+                     -> st                     -- Destination
+                     -> Int                    -- Number of Arrows
+numberIncomingArrows d vs qs dest = length  [ q
+                                            | v <- vs
+                                            , q <- qs 
+                                            , d q v == dest
+                                            ]
+
+dfaaccept' :: Eq st => Dfa st sy -> [sy] -> Bool
+dfaaccept' (Dfa v q s z delta) simb = foldl delta s simb `elem` z
+
+-}
 
 
 
