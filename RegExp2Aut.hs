@@ -1,6 +1,7 @@
 module RegExp2Aut where
 
 import Data.List
+import AuxiliaryTypes
 import RegExp
 import Dfa
 import Ndfa
@@ -63,16 +64,6 @@ instance Show a => Show (RE a) where
 
 
 -- Glushkov Algorithm: phase 1 -- linearization
-data Indexed a = I a Int deriving (Eq,Ord)
-noindex (I a _) = a
-
-findI :: (Eq a) => a -> [Indexed a] -> Maybe Int
-findI _ [] = Nothing
-findI x ((I c n):ys) = if x == c then Just n else findI x ys
-
-instance Show a => Show (Indexed a) where
-   show (I a i) = filter (not.((`elem` "\"\'"))) ((show a) ++ (show i))
-
 -- Linearization as in the wikipedia page 
 glushkov_phase1 :: Eq a => RE a -> RE (Indexed a)
 glushkov_phase1 =  fst . (glushkov_phase1_state [])
@@ -100,39 +91,6 @@ glushkov_phase1_state state (ONEORMORE e) =
 glushkov_phase1_state state (OPTIONAL e) = 
       let (ee,state') = glushkov_phase1_state state e
       in (OPTIONAL ee, state')
-
-{- Alternative version where the counter is local for each symbol
-glushkov_phase1_alt :: Eq a => RE a -> RE (Indexed a)
-glushkov_phase1_alt =  fst . (glushkov_phase1_state_alt [])
-
-glushkov_phase1_state_alt :: Eq a => [(Indexed a)] 
-                              -> RE a 
-                              -> (RE (Indexed a),[(Indexed a)])
-glushkov_phase1_state_alt state EMPTY = (EMPTY, state)
-glushkov_phase1_state_alt state EPSILON = (EPSILON, state)
-glushkov_phase1_state_alt state (LITERAL c) = 
-      case findI c state of
-              Just n -> (LITERAL (I c (n+1)), (I c (n+1)):(state))
-              Nothing -> (LITERAL (I c 1), (I c 1):state)
-glushkov_phase1_state_alt state (OR e1 e2) = 
-      let (ee1,state' ) = glushkov_phase1_state_alt state  e1
-          (ee2,state'') = glushkov_phase1_state_alt state' e2
-      in (OR ee1 ee2, state'')
-glushkov_phase1_state_alt state (THEN e1 e2) = 
-      let (ee1,state' ) = glushkov_phase1_state_alt state  e1
-          (ee2,state'') = glushkov_phase1_state_alt state' e2
-      in (THEN ee1 ee2, state'')
-glushkov_phase1_state_alt state (STAR e) = 
-      let (ee,state') = glushkov_phase1_state_alt state e
-      in (STAR ee, state')
-glushkov_phase1_state_alt state (ONEORMORE e) = 
-      let (ee,state') = glushkov_phase1_state_alt state e
-      in (ONEORMORE ee, state')
-glushkov_phase1_state_alt state (OPTIONAL e) = 
-      let (ee,state') = glushkov_phase1_state_alt state e
-      in (OPTIONAL ee, state')
-
--}
 
 
 {- Glushkov Algorithm: phase 2
@@ -168,68 +126,94 @@ glushkov e = let (le,states) = glushkov_phase1_state [] (regExp2RE e)
 
 
 
-{- Conversion between a Regular Expression and a Ndfa using Thompson's algorithm -}
-{-
-thompson :: RegExp -> NdfaT Int Char
+{- Conversion between a Regular Expression and a Ndfa using Thompson's algorithm 
+   https://en.wikipedia.org/wiki/Thompson%27s_construction 
+   Properties of the produced automaton:
+      has exactly ONE initial state
+      has exactly ONE final state
+      the number of transitions from any state is at most TWO
+-}
+
+thompson :: RegExp -> NdfaT Int (Eps Char)
 thompson er = fst (regExp2Ndfa' er 1)
 
-regExp2Ndfa' :: RegExp -> Int -> (NdfaT Int Char,Int)
+regExp2Ndfa' :: RegExp -> Int -> (NdfaT Int (Eps Char),Int)
 -- regExp2Ndfa e n = (a,p) where a is an automaton with states n..(p-1)
 regExp2Ndfa' Empty n = ( NdfaT [] [sa,za] [sa] [za] delta , n+2 )
     where sa = n
           za = n+1
           delta = []
 
-regExp2Ndfa' (Epsilon) n = ( NdfaT [] [sa] [sa] [sa] delta , n+1 )
+regExp2Ndfa' (Epsilon) n = ( NdfaT [] [sa,za] [sa] [za] delta , n+2 )
     where sa = n 
-          delta = []
+          za = n+1
+          delta = [((sa,Eps),[za])]
 
-regExp2Ndfa' (Literal l) n = ( NdfaT [l] [sa,za] [sa] [za] delta , n+2)
+regExp2Ndfa' (Literal l) n = ( NdfaT [Symb l] [sa,za] [sa] [za] delta , n+2)
   where sa = n
         za = n+1
-        delta=[((n,l),[n+1])]
-
-
+        delta=[((sa,Symb l),[za])]
 regExp2Ndfa' (Then p q) n = ( NdfaT v' q' s' z' delta' , nq)
-  where (NdfaT vp qp sp zp dp , np) = regExp2Ndfa' p n
-        (NdfaT vq qq sq zq dq , nq) = regExp2Ndfa' q np
+  where (NdfaT vp qp [sp] [zp] dp , np) = regExp2Ndfa' p n
+        (NdfaT vq qq [sq] [zq] dq , nq) = regExp2Ndfa' q np
         v' = vp ++ vq
         q' = qp ++ qq
-        s' = sp
-        z' = zq
-        delta' = (joinFinals dp zp sq) ++ dq
-        -- há aqui um erro. 
-        --Tem que se ver se os estados finais do primeiro não vão para outros sitios. 
-        --nesse caso será preciso colapsar isto
-regExp2Ndfa' (Or p q) n = ( NdfaT v' q' s' z' delta' , nq )
-  where (NdfaT vp qp sp zp dp , np) = regExp2Ndfa' p n
-        (NdfaT vq qq sq zq dq , nq) = regExp2Ndfa' q np
+        s' = [sp]
+        z' = [zq]
+        delta' = ((zp,Eps),[sq]):(dp ++ dq)
+regExp2Ndfa' (Or p q) n = ( NdfaT v' q' [s'] [z'] delta' , (nq+1))
+  where (NdfaT vp qp [sp] [zp] dp , np) = regExp2Ndfa' p (n+1)
+        (NdfaT vq qq [sq] [zq] dq , nq) = regExp2Ndfa' q np
         v' = vp ++ vq 
-        s' = sp ++ sq
-        z' = zp ++ zq
-        q' = qp ++ qq
-        delta' = dp ++ dq 
+        q' = [s',z'] ++ qp ++ qq
+        s' = n
+        z' = nq
+        delta' = [((s',Eps),[sp]),((zp,Eps),[z'])] ++ dp ++ dq 
 
-regExp2Ndfa' (Star p) n = ( NdfaT v' q' s' z' delta' , np )
-  where (NdfaT vp qp sp zp dp , np) = regExp2Ndfa' p (n)
+regExp2Ndfa' (Star p) n = ( NdfaT v' q' [s'] [z'] delta' , (np+1) )
+  where (NdfaT vp qp [sp] [zp] dp , np) = regExp2Ndfa' p (n+1)
         v' = vp 
-        s' = sp
-        z' = zp `union` sp
         q' = qp
-        delta'= joinFinals dp zp sp
-
+        s' = n
+        z' = np
+        delta'= [((s',Eps),[sp]), ((zp,Eps),[z'])
+                ,((zp,Eps),[sp]), ((z',Eps),[s'])] 
+                ++ dp 
 regExp2Ndfa' (OneOrMore e) n = regExp2Ndfa' (Then e (Star e)) n
---Podia-se fazer melhor: na de cima e na de baixo
 regExp2Ndfa' (Optional e) n = regExp2Ndfa' (Or Epsilon e) n
 
 
-joinFinals :: Eq st => [((st, Maybe sy), [st])] -> [st] -> [st] -> [((st, Maybe sy), [st])]
-joinFinals [] finals inits = [((x,Nothing),inits) | x <- finals]
-joinFinals (((x,Nothing),y):ds) finals inits 
-       | x `elem` finals = ((x,Nothing),y++inits):joinFinals ds (delete x finals) inits 
-       | otherwise = ((x,Nothing),y):joinFinals ds finals inits
-joinFinals (d:ds) finals inits = d:joinFinals ds finals inits
--}
+{- Alternative version where the counter is local for each symbol
+glushkov_phase1_alt :: Eq a => RE a -> RE (Indexed a)
+glushkov_phase1_alt =  fst . (glushkov_phase1_state_alt [])
 
+glushkov_phase1_state_alt :: Eq a => [(Indexed a)] 
+                              -> RE a 
+                              -> (RE (Indexed a),[(Indexed a)])
+glushkov_phase1_state_alt state EMPTY = (EMPTY, state)
+glushkov_phase1_state_alt state EPSILON = (EPSILON, state)
+glushkov_phase1_state_alt state (LITERAL c) = 
+      case findI c state of
+              Just n -> (LITERAL (I c (n+1)), (I c (n+1)):(state))
+              Nothing -> (LITERAL (I c 1), (I c 1):state)
+glushkov_phase1_state_alt state (OR e1 e2) = 
+      let (ee1,state' ) = glushkov_phase1_state_alt state  e1
+          (ee2,state'') = glushkov_phase1_state_alt state' e2
+      in (OR ee1 ee2, state'')
+glushkov_phase1_state_alt state (THEN e1 e2) = 
+      let (ee1,state' ) = glushkov_phase1_state_alt state  e1
+          (ee2,state'') = glushkov_phase1_state_alt state' e2
+      in (THEN ee1 ee2, state'')
+glushkov_phase1_state_alt state (STAR e) = 
+      let (ee,state') = glushkov_phase1_state_alt state e
+      in (STAR ee, state')
+glushkov_phase1_state_alt state (ONEORMORE e) = 
+      let (ee,state') = glushkov_phase1_state_alt state e
+      in (ONEORMORE ee, state')
+glushkov_phase1_state_alt state (OPTIONAL e) = 
+      let (ee,state') = glushkov_phase1_state_alt state e
+      in (OPTIONAL ee, state')
+
+-}
 
 

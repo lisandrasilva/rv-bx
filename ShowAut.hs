@@ -4,6 +4,10 @@ import Data.List
 import System.Process
 import Ndfa
 import Dfa
+import Ndfa2Dfa
+import RegExp
+import RegExp2Aut
+import Examples
 
 instance (Show st, Show sy, Eq st) => Show (DfaF st sy) where
      show = showAut
@@ -90,6 +94,7 @@ subsdoublequote = subs True
         subs flag (h:t) = h:(subs flag t)
         subs _ [] = []
 
+er1 = Or (Then (Literal 'a') (Star (Literal 'a'))) (Then (Literal 'a') (Star (Literal 'b')))
 
 displayFA d = do writeFile "__.dot" (subsdoublequote (fa2Dot d))
                  system "dot -Tpng -O __.dot"
