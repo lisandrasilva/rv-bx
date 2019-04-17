@@ -94,9 +94,22 @@ subsdoublequote = subs True
         subs flag (h:t) = h:(subs flag t)
         subs _ [] = []
 
-er1 = Or (Then (Literal 'a') (Star (Literal 'a'))) (Then (Literal 'a') (Star (Literal 'b')))
 
 displayFA d = do writeFile "__.dot" (subsdoublequote (fa2Dot d))
                  system "dot -Tpng -O __.dot"
                  system "open __.dot.png"
+
+
+dotNdfaDfa e = do let fname = "__"
+                  putStrLn (showRE e)
+                  let an = n2D $ glushkov e
+                  let n  = fa2Dot an
+                  let ad = n2D an
+                  let d  = fa2Dot ad
+                  writeFile (fname ++ "N.dot") (subsdoublequote n)
+                  writeFile (fname ++ "D.dot") (subsdoublequote d)
+                  system ("dot -Tpng -O " ++ fname ++"N.dot")
+                  system ("dot -Tpng -O " ++ fname ++"D.dot")
+                  system ("open " ++ fname ++ "N.dot.png")
+                  system ("open " ++ fname ++ "D.dot.png")
 
