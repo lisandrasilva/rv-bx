@@ -1,63 +1,44 @@
 module Ndfa2Dfa where
-
+  
 import Data.List
-import RegExp
+import AuxiliaryTypes
 import Dfa
 import Ndfa
 
--- há que fazer uma versão (mais simples) para o caso de autómatos
--- não deterministicos sem transições epsilon (não vai precisar de
--- calcular eclosure)
-
-ndfaG2dfa :: (NDFA t, Ord st, Eq sy) => t st sy -> DfaT [st] sy
-ndfaG2dfa a = let (NdfaT voc stats starts finals delta) = injNDFA a
-                  finals' = [x | x <- stats', not(null(x `intersect` finals))]
-                  (stats',delta') = buildTable delta [] [] [starts]
-              in DfaT voc stats' starts finals' (nub delta')
-
-buildTable :: (Ord st ,Eq sy)=> [((st,sy),[st])] 
-                        -> [[st]]
-                        -> [(([st],sy),[st])]
-                        -> [[st]] 
-                        -> ([[st]], [(([st],sy),[st])])
-buildTable d x y [] = (x,y)
-buildTable delta states tab (s:ss) = buildTable delta states' tab' (ss ++ new)
-     where tab'           = tab ++ newtransitions
-           newtransitions = [((s,symb),from delta s symb) | symb <- outsymbols]
-           states'        = s:states
-           outsymbols     = [x | ((a,x),_) <- delta, a `elem` s]
-           new            =  ((nub (map snd newtransitions)) \\ states') \\ ss 
-
--- Não posso pôr i <- ls???
-from d ls x = sort [s' | ((i,y),s) <- d, y == x, i `elem` ls, s' <- s]
-
-{-
--- Convert a non-deterministic automaton into a deterministic one
--- Rabin–Scott powerset construction
+{-  Convert a non-deterministic automaton with NO Epsilon transitions into a deterministic 
+    whose states are sets of the original states Rabin–Scott powerset construction
+    https://en.wikipedia.org/wiki/Powerset_construction
+-}
 n2D :: (NDFA t, Ord st, Eq sy) => t st sy -> DfaT [st] sy
 n2D a = let (NdfaT voc stats starts finals delta) = injNDFA a
-            starts' = eclosureSet delta [] starts
+            starts' = starts
             finals' = [x | x<-stats', not(null(x `intersect` finals))]
-            (stats',delta') = buildTable delta [] [] [starts']
-        in DfaT voc stats' starts' finals' (nub delta')
+            (stats',delta') = closedTab delta [] [] [starts']
+            voc' = voc
+        in DfaT voc' stats' starts' finals' delta'
 
--- esta martelada de fazer o nub delta devia ser mais bem feita
--- garantindo que a função buildTable não produz linhas repetidas
+{-  Given the Ndfa transition table computes the transition table for the Dfa -}
+closedTab :: (Ord st, Eq sy) => 
+            [((st,sy),[st])] 
+            -> [[st]]
+            -> [(([st], sy),[st])]
+            -> [[st]] 
+            -> ([[st]], [(([st],sy),[st])])
+closedTab _ states trans [] = (states, trans)
+closedTab delta states trans (xs:xss) 
+  = closedTab delta (xs:states) trans' (xss `union` newStates)
+        where outsymbols = rel2Func [(y,o) | ((a,y),o) <- delta, a `elem` xs] 
+              newlines = map (\(x,y)->((xs,x),sortUnique y)) outsymbols 
+              trans' = newlines ++ trans
+              newStates = ((map snd newlines) \\ (xs:states)) \\ xss
 
+-- Auxiliary functions 
 
+{-  Merges a list of sorted lists with no repetitions into a single ordered list with no repetitions -}
+sortUnique :: Ord a => [[a]] -> [a]
+sortUnique = foldr mergeUniq [] 
 
-eclosure :: Ord st => [((st,Maybe sy),[st])] -> st -> [st]
-eclosure delta s = eclosureSet delta [] [s]
-
-eclosureSet :: Ord st => [((st,Maybe sy),[st])] -> [st] -> [st] -> [st]
-eclosureSet d acc [] = acc
-eclosureSet d acc (h:t) = let one = (findEpsilon d h)
-                              new = one \\ acc
-                          in eclosureSet d (mergeUniq acc new) (new ++ t) 
-
-findEpsilon :: Ord st => [((st,Maybe sy),[st])] -> st -> [st]
-findEpsilon tab s = sort (s:[s' | ((x,Nothing),d) <- tab, x==s, s' <- d])
-
+{- Merges two sorted lists with no repetitions into a single ordered list with no repetitions -}
 mergeUniq :: Ord a => [a] -> [a] -> [a]
 mergeUniq [] y = y
 mergeUniq x [] = x
@@ -65,94 +46,54 @@ mergeUniq (x:xs) (y:ys) | x == y = x:(mergeUniq xs ys)
                         | x < y  = x:(mergeUniq xs (y:ys))
                         | x > y  = y:(mergeUniq (x:xs) ys)
 
-buildTable :: (Ord st ,Eq sy)=> [((st,Maybe sy),[st])] 
-                        -> [[st]]
-                        -> [(([st],sy),[st])]
-                        -> [[st]] 
-                        -> ([[st]], [(([st],sy),[st])])
-buildTable d x y [] = (x,y)
-buildTable delta states tab (s:ss) = buildTable delta states' tab' (ss ++ new)
-     where tab'           = tab ++ newtransitions
-           newtransitions = [((s,symb),eclosureSet delta [] (from delta s symb)) | symb <- outsymbols]
-           states'        = s:states
-           outsymbols     = [x | ((a,Just x),_) <- delta, a `elem` s]
-           new            =  ((nub (map snd newtransitions)) \\ states') \\ ss 
+{- Converts a relation a<->b into a function a->[b] -}
+rel2Func :: (Eq a, Eq b) => [(a,b)] -> [(a,[b])]
+rel2Func = foldr add [] 
+   where add (x,y) [] = [(x,[y])]
+         add (x,y) ((z,ys):t) 
+             | x == z    = ((x,addNoRep y ys)):t 
+             | otherwise = (z,ys):(add (x,y) t)
+         addNoRep x [] = [x]
+         addNoRep x (y:ys) | x==y = (y:ys)
+                           | otherwise = y:(addNoRep x ys)
 
-from d ls x = sort [s' | ((i,Just y),s) <- d, y == x, i `elem` ls, s' <- s]
+
+{- Convert a non-deterministic automaton with Epsilon transitions 
+   into a deterministic automaton whose states are sets of the original states
+   Rabin–Scott powerset construction
 -}
+nEpsilon2D :: (NDFA t, Ord st, Eq sy) => t st (Eps sy) -> DfaT [st] sy
+nEpsilon2D a = let (NdfaT voc stats starts finals delta) = injNDFA a
+                   starts' = epsClosureSet delta [] starts
+                   finals' = [x | x<-stats', not(null(x `intersect` finals))]
+                   (stats',delta') = closedTabEps delta [] [] [starts']
+                   voc' = catEps voc
+               in DfaT voc' stats' starts' finals' delta'
 
-{-
+epsClosureSet :: Ord st => [((st,Eps sy),[st])] -> [st] -> [st] -> [st]
+epsClosureSet d acc [] = acc
+epsClosureSet d acc (h:t) = let one = (findEpsilon d h)
+                                new = one \\ acc
+                            in epsClosureSet d (mergeUniq acc new) (new ++ t) 
 
-type StDfa st = [st]
-type CT    st = [( StDfa st, [StDfa st])]
+findEpsilon :: Ord st => [((st,Eps sy),[st])] -> st -> [st]
+findEpsilon tab s = sort (s:[s' | ((x,Eps),d) <- tab, x==s, s' <- d])
 
--- Given a delta function, an AFD state and the vocabulary gives the list of the AFD states for the other entries
-oneRow :: Ord st 
-       => (st -> Maybe sy -> [st]) -> StDfa st -> [sy] -> [StDfa st]
-oneRow delta sts alfabet = map (\ v -> sort (ndfawalk delta sts [v])) alfabet
+fromEps :: (Ord st, Eq sy) => [((st, Eps sy), [st])] -> [st] -> sy -> [st]
+fromEps d ls x = sort [s' | ((i,Symb y),s) <- d, y == x, i `elem` ls, s' <- s]
 
-f5_ndfa_a1 = Ndfa ['a','b'] ['A','B','C','D'] ['A'] ['D'] f5_delta_a1
-
-f5_delta_a1 'A' (Just 'a') = ['B','C']
-f5_delta_a1 'A' Nothing    = ['D']
-f5_delta_a1 'B' (Just 'a') = ['C']
-f5_delta_a1 'C' (Just 'b') = ['D']
-f5_delta_a1 'D' Nothing    = ['C']
-f5_delta_a1  _  _          = []
-
-
-alinea_1 = epsilon_closure f5_delta_a1 ['A']
--- alinea_1 = "ACD"
-alinea_2 = oneRow f5_delta_a1 alinea_1 ['a','b']
--- alinea_2 = ["BC","CD"]
-
--- Given the delta funtion, the set of AFD states and the vocabulary fills the row for each one of the AFD states
-consRows :: Ord st => (st -> Maybe sy -> [st]) -> [StDfa st] -> [sy] -> CT st
-consRows delta []     v = []
-consRows delta (q:qs) v = nub ((q , oneRow delta q v) : (consRows delta qs v))
-
-alinea_3 = consRows f5_delta_a1  alinea_2 ['a','b']
--- alinea_3 = [("BC",["C","CD"]),("CD",["","CD"])]
-
--- Given the delta function, the vocabulary and a partially completed table gives the completed conversion table
-ndfa2CtStep :: Ord st => (st -> Maybe sy -> [st]) -> [sy] -> CT st -> CT st
-ndfa2CtStep delta v []          = []
-ndfa2CtStep delta v ((s,ss):rs) = (s,ss):(consRows delta ss v) `union` (ndfa2CtStep delta v rs)
-
-alinea_4 = ndfa2CtStep  f5_delta_a1  ['a','b'] [("ACD",["BC","CD"])]
--- [("ACD",["BC","CD"]),("BC",["C","CD"]),("CD",["","CD"])]
-
-alinea_4b = ndfa2CtStep f5_delta_a1 ['a','b'] alinea_4 
-
-alinea_4c = ndfa2CtStep f5_delta_a1 ['a','b'] alinea_4b
-
-
-ndfa2ct :: Ord st => Ndfa st sy -> CT st 
-ndfa2ct (Ndfa v q s z delta) = limit (ndfa2CtStep delta v) ttFstRow
-  where  ttFstRow = consRows delta [epsilon_closure delta s] v
-
-alinea_5 = ndfa2ct f5_ndfa_a1
-
-
-ndfa2dfa :: (Ord st,Eq sy) => Ndfa st sy -> Dfa [st] sy
-ndfa2dfa ndfa@(Ndfa v q s z delta)  = (Dfa v' q' s' z' delta') 
-  where  tt = ndfa2ct ndfa 
-         v' = v 
-         q' = map fst tt
-         s' = fst (head tt)
-         z' = finalStatesDfa q' z
-         delta' st sy = lookupCT st sy tt v
-
-finalStatesDfa :: Eq st => [StDfa st] -> [st] -> [StDfa st]
-finalStatesDfa []     z  = []
-finalStatesDfa (q:qs) z  | (q `intersect` z /= [])  = q : finalStatesDfa qs z
-                         | otherwise                = finalStatesDfa qs z
-
-
-lookupCT :: (Eq st, Eq sy) => [st] -> sy -> CT st -> [sy] -> StDfa st
-lookupCT st sy ct v = qs !! col
-  where Just qs   = lookup st ct
-        Just col  = elemIndex sy v
--}
-
+              
+closedTabEps :: (Ord st, Eq sy) => 
+                [((st,Eps sy),[st])] 
+                -> [[st]]
+                -> [(([st], sy),[st])]
+                -> [[st]] 
+                -> ([[st]], [(([st],sy),[st])])
+closedTabEps _ states trans [] = (states, trans)
+closedTabEps deltaEps states trans (xs:xss) 
+  = closedTabEps deltaEps (xs:states) trans' (xss `union` newStates)
+        where outsymbols = rel2Func [(y,epsClosureSet deltaEps [] o) | ((a,Symb y),o) <- deltaEps, a `elem` xs] 
+              newlines = map (\(x,y)->((xs,x),sortUnique y)) outsymbols 
+              trans' = newlines ++ trans
+              newStates = ((map snd newlines) \\ (xs:states)) \\ xss
 
