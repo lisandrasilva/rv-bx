@@ -121,7 +121,7 @@ glushkov e = let (le,states) = glushkov_phase1_state [] (regExp2RE e)
                  finals = if emp then (ini:ends) else ends
                  delta = [((ini,c),[(I c x)]) | (I c x) <- starts] 
                          ++ grouping [ (((I x nx),y),(I y ny))| [(I x nx),(I y ny)] <- transitions]
-                 vocabulary = nub (map noindex states)
+                 vocabulary = nub (map getSymbol states)
              in NdfaT vocabulary states [ini] finals delta
 
 

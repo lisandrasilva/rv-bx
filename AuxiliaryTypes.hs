@@ -1,7 +1,8 @@
 module AuxiliaryTypes where
 
 data Indexed a = I a Int deriving (Eq,Ord)
-noindex (I a _) = a
+getSymbol (I a _) = a
+getIndex (I _ i) = i
 
 findI :: (Eq a) => a -> [Indexed a] -> Maybe Int
 findI _ [] = Nothing
@@ -28,3 +29,8 @@ catEps [] = []
 catEps ((Symb x):xs) = x:catEps xs
 catEps (Eps:xs) = catEps xs
 
+
+noRepetitions :: (Eq a) => [a] -> Bool
+noRepetitions [] = True
+noRepetitions [x] = True
+noRepetitions (h:t) = not (h `elem` t) && noRepetitions t
