@@ -12,20 +12,20 @@ import Examples
 instance (Show st, Show sy, Eq st) => Show (DfaF st sy) where
      show = showAut
 
-instance (Show st, Show sy, Eq st) => Show (DfaT st sy) where
+instance (Show st, Show sy, Eq st) => Show (Dfa st sy) where
      show = showAut
 
 instance (Show st, Show sy, Eq st) => Show (NdfaF st sy) where
      show = showAut
 
-instance (Show st, Show sy, Eq st) => Show (NdfaT st sy) where
+instance (Show st, Show sy, Eq st) => Show (Ndfa st sy) where
      show = showAut
 
 
 {- Definition of show for automata -}
 showAut :: (NDFA t, Show st, Show sy, Eq st) => t st sy -> String
 showAut a = 
-     let (NdfaT voc stats starts final delta) = injNDFA a
+     let (Ndfa voc stats starts final delta) = injNDFA a
          indent pat l = zipWith (++) ("":(repeat pat)) l
          showLComma l = concat (intersperse ", " (map show l))
          showTabI = concat 
@@ -36,13 +36,13 @@ showAut a =
         ++ "\nStates:         " ++ showLComma stats 
         ++ "\nStart state(s): " ++ showLComma starts
         ++ "\nFinal states:   " ++ showLComma final
-        ++ "\nTransitions:    " ++ showTabI [((show x,show y),show z') | ((x,y),z) <- delta, z' <- z]
+        ++ "\nTransitions:    " ++ showTabI [((show x,show y),show z) | ((x,y),z) <- delta]
 
 
 {- Converts an automaton in a string to write in the .dot file -}
 fa2Dot :: (NDFA t, Show st, Show sy, Eq st) => t st sy -> String
 fa2Dot a = header ++ states ++ initials ++ transitions ++ footer
-    where (NdfaT voc stats start final delta) = injNDFA a
+    where (Ndfa voc stats start final delta) = injNDFA a
           header = unlines [ "digraph G {"
                            , "    rankdir=LR;"
                            , "    fontname=\"sans-serif\";"
@@ -70,7 +70,7 @@ fa2Dot a = header ++ states ++ initials ++ transitions ++ footer
           finalstates = unlines $ map ((\x-> "    " ++ x ++ " [shape=\"doublecircle\"];").showWithQuote) final
           nonfinalstates = unlines $ map ((\x-> "    " ++ x ++ ";").showWithQuote) (stats \\ final)
           states = nonfinalstates ++ finalstates
-          transitions = unlines $ map transition [((a,b),c') | ((a,b),c) <- delta , c' <- c]
+          transitions = unlines $ map transition delta
           transition ((i,l),f) = "    " 
                           ++ showWithQuote i 
                           ++ " -> "
@@ -102,7 +102,7 @@ displayFA d = do writeFile "__.dot" (subsdoublequote (fa2Dot d))
 
 dotNdfaDfa e = do let fname = "__"
                   putStrLn (showRE e)
-                  let an = n2D $ glushkov e
+                  let an = glushkov e
                   let n  = fa2Dot an
                   let ad = n2D an
                   let d  = fa2Dot ad

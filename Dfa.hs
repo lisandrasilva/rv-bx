@@ -1,8 +1,7 @@
 module Dfa where
 
-import Data.List
-import Data.Char
-import RegExp
+--import Data.List
+--import Data.Char
 
 {- DFA where the transitions are defined as a function -}
 data DfaF st sy = DfaF [sy]              -- Finite set of Vocabulary Symbols
@@ -12,23 +11,23 @@ data DfaF st sy = DfaF [sy]              -- Finite set of Vocabulary Symbols
                        (st -> sy -> st)  -- Transition Function
 
 {- DFA where the transitions are defined as a table -}
-data DfaT st sy = DfaT [sy]              -- Finite set of Vocabulary Symbols
-                       [st]              -- Finite set of states
-                       st                -- The start state
-                       [st]              -- The set of final states
-                       [((st,sy),st)]    -- Transition Table
+data Dfa st sy = Dfa [sy]              -- Finite set of Vocabulary Symbols
+                     [st]              -- Finite set of states
+                     st                -- The start state
+                     [st]              -- The set of final states
+                     [((st,sy),st)]    -- Transition Table
 
 
 {- Converts all DFA into the tabulated version -}
 class DFA t where
-  injDFA :: t states voc -> DfaT states voc
+  injDFA :: t states voc -> Dfa states voc
 
-instance DFA DfaT where
+instance DFA Dfa where
   injDFA = id
 
 instance DFA DfaF where
   injDFA (DfaF voc states start finals delta) 
-    = DfaT voc states start finals (tabulate delta states voc)
+    = Dfa voc states start finals (tabulate delta states voc)
 
 {- Given a delta function, the states and the vocabulary computes the transition table -}
 tabulate :: (a -> b -> c) -> [a] -> [b] -> [((a,b),c)]
@@ -57,7 +56,7 @@ functionwalk delta s (x:xs) = functionwalk delta (delta s x) xs
 {- Detemines if a given string belongs to the language defined by the DFA-}
 dfaaccept :: (Eq st, Eq sy, DFA t) => t st sy -> [sy] -> Bool
 dfaaccept a sentence =
-       let (DfaT v q s z delta) = injDFA a 
+       let (Dfa v q s z delta) = injDFA a 
            (f,remain) = tableWalk delta s sentence
        in (null remain) && (f `elem` z)
 

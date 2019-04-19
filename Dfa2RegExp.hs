@@ -1,22 +1,19 @@
 module Dfa2RegExp where
 
 import Dfa
-import Ndfa
 import RegExp
-import ShowAut
-import RegExp2Aut
-import Ndfa2Dfa
 
-ex1,ex2,ex3 :: DfaT Int Char
-ex3 = DfaT "ab"  [0,1,2]   0 [1] [((0,'a'),1),((1,'b'),2),((2,'a'),0)]
-ex2 = DfaT "a"   [0]       0 [0] [((0,'a'),0)]
-ex1 = DfaT "abc" [0,1,2,3] 0 [3] [((0,'a'),1),((1,'b'),2),((2,'c'),3)]
+ex1,ex2,ex3 :: Dfa Int Char
+
+ex3 = Dfa "ab"  [0,1,2]   0 [1] [((0,'a'),1),((1,'b'),2),((2,'a'),0)]
+ex2 = Dfa "a"   [0]       0 [0] [((0,'a'),0)]
+ex1 = Dfa "abc" [0,1,2,3] 0 [3] [((0,'a'),1),((1,'b'),2),((2,'c'),3)]
 
 -- Kleene's algorithm to transform a given deterministic finite automaton into a regular expression.
 -- https://en.wikipedia.org/wiki/Kleene%27s_algorithm
 -- assumes that the (n+1) states are numbered from 0 to n and the initial state is 0
-dfa2RegExp :: DfaT Int Char -> RegExp
-dfa2RegExp (DfaT voc states start finals delta)
+dfa2RegExp :: Dfa Int Char -> RegExp
+dfa2RegExp (Dfa voc states start finals delta)
     = let n = (length states) -1
           initialR = (identity n) $ (process delta) $ emptys
           emptys = replicate (n+1) (replicate (n+1) Empty)

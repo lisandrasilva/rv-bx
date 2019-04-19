@@ -1,7 +1,5 @@
 module Ndfa where
 
-import System.Process
-import Data.List
 import Dfa
 
 {- NDFA where the transitions are defined as a function -}
@@ -13,34 +11,35 @@ data NdfaF st sy = NdfaF [ sy ]                      -- Vocabulary
 
 
 {- NDFA where the transitions are defined as a table -}
-data NdfaT st sy = NdfaT [ sy ]                   -- Vocabulary
-                         [ st ]                   -- States
-                         [ st ]                   -- Start states
-                         [ st ]                   -- Final states
-                         [((st,sy),[ st ])]       -- Transition table
-
+data Ndfa st sy = Ndfa [ sy ]               -- Vocabulary
+                       [ st ]               -- States
+                       [ st ]               -- Start states
+                       [ st ]               -- Final states
+                       [((st,sy),st)]       -- Transition table
 
 {- Converts all NDFA into the tabulated version -}
 class NDFA t where
-  injNDFA :: t states voc -> NdfaT states voc
+  injNDFA :: t states voc -> Ndfa states voc
 
-instance NDFA NdfaT where
+instance NDFA Ndfa where
   injNDFA = id
 
 instance NDFA NdfaF where
   injNDFA (NdfaF voc states starts finals delta) 
-    = NdfaT voc states starts finals (tabulate delta states voc)
+    = Ndfa voc states starts finals delta'
+      where delta' = [((o,s),d) | ((o,s),ds) <- (tabulate delta states voc)
+                                , d <- ds]
 
 
 {- Dfa can be made into Ndfa -}
-toNonDet :: DFA t => t states voc -> NdfaT states voc
-toNonDet a = let (DfaT v s i f table) = injDFA a
-             in NdfaT v s [i] f [((x,y),[z]) | ((x,y),z) <- table]
+toNonDet :: DFA t => t states voc -> Ndfa states voc
+toNonDet a = let (Dfa v s i f table) = injDFA a
+             in Ndfa v s [i] f table
 
 instance NDFA DfaF where 
    injNDFA = toNonDet . injDFA 
 
-instance NDFA DfaT where 
+instance NDFA Dfa where 
    injNDFA = toNonDet . injDFA 
 
 
@@ -62,24 +61,25 @@ remove s' ((s,d):t) | s == s' = ((d:x'), t')
     where (x',t') = remove s' t
 
 {- Reverts an automaton -}
-revAut :: (NDFA t, Eq st, Eq sy)=> t st sy -> NdfaT st sy
+revAut :: (NDFA t, Eq st, Eq sy)=> t st sy -> Ndfa st sy
 revAut a = 
-     let (NdfaT voc stats starts final delta) = injNDFA a
-     in NdfaT voc stats final starts (revNTab delta)
+     let (Ndfa voc stats starts final delta) = injNDFA a
+         delta' = [((o,s),d) | ((d,s),o) <- delta]
+     in Ndfa voc stats final starts delta'
 
 
 {- Renaming the states -}
-normStates :: (NDFA t, Eq st, Eq sy, Ord st) => t st sy -> NdfaT Int sy
+normStates :: (NDFA t, Eq st, Eq sy, Ord st) => t st sy -> Ndfa Int sy
 normStates a = 
-     let (NdfaT voc stats starts final delta) = injNDFA a
+     let (Ndfa voc stats starts final delta) = injNDFA a
          stats' = [1..length stats]
          conversion = zip stats stats'
          convert s = let (Just s') = lookup s conversion
                      in s'
          final' = map convert final
          starts' = map convert starts
-         delta' = [((convert x,y), map convert z) | ((x,y),z) <- delta]  
-     in NdfaT voc stats' starts' final' delta'
+         delta' = [((convert x,y), convert z) | ((x,y),z) <- delta]  
+     in Ndfa voc stats' starts' final' delta'
 
 
 {- Computes the fix point of a function -}
