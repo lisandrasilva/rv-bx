@@ -6,7 +6,8 @@ import Dfa
 import Ndfa
 
 {-  Convert a non-deterministic automaton with NO Epsilon transitions into a deterministic 
-    whose states are sets of the original states Rabin–Scott powerset construction
+    whose states are sets of the original states 
+    Rabin–Scott powerset construction
     https://en.wikipedia.org/wiki/Powerset_construction
 -}
 n2D :: (NDFA t, Ord st, Eq sy) => t st sy -> DfaT [st] sy
