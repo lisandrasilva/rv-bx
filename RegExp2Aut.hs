@@ -72,7 +72,7 @@ glushkov_phase1_state :: Eq a => [Indexed a] -> RE a -> (RE (Indexed a),[Indexed
 glushkov_phase1_state state EMPTY = (EMPTY, state)
 glushkov_phase1_state state EPSILON = (EPSILON, state)
 glushkov_phase1_state state (LITERAL c) = 
-      let n = length state
+      let n = 1+length state
       in (LITERAL (I c n), (I c n):state)
 glushkov_phase1_state state (OR e1 e2) = 
       let (ee1,state' ) = glushkov_phase1_state state  e1
@@ -100,17 +100,17 @@ glushkov_phase1_state state (OPTIONAL e) =
       - F(e'), the set of letter pairs that can occur in words
       - L(e'), True iff the empty word belongs to the language
 -}
-glushkov_phase2 :: Eq a => RE a -> ([a],[a],[[a]],Bool) 
+glushkov_phase2 :: Eq a => RE a -> ([a],[a],[(a,a)],Bool) 
 glushkov_phase2 = cataRE ([],[],[],False) -- EMPTY
                          ([],[],[],True)  -- EPSILON
                          (\x -> ([x],[x],[],False)) -- LITERAL x
-                         (\(px,dx,tx,ex) (py,dy,ty,ey) -> (px `union` py, dx `union` dy, tx `union` ty, ex || ey)) -- OR x y
-                         (\(px,dx,tx,ex) (py,dy,ty,ey) -> (if ex then (px `union` py) else px,
-                                                           if ey then (dx `union` dy) else dy,
-                                                           nub (tx ++ ty ++ [[x,y]| x<-dx,y<-py]),
+                         (\(px,dx,tx,ex) (py,dy,ty,ey) -> (px ++ py, dx ++ dy, tx ++ ty, ex || ey)) -- OR x y
+                         (\(px,dx,tx,ex) (py,dy,ty,ey) -> (if ex then (px ++ py) else px,
+                                                           if ey then (dx ++ dy) else dy,
+                                                           (tx ++ ty ++ [(x,y)| x<-dx,y<-py]),
                                                            ex && ey)) -- THEN x y
-                         (\(px,dx,tx,ex) -> (px,dx,nub (tx ++[[x,y]| x<-dx,y<-px]),True)) -- STAR x
-                         (\(px,dx,tx,ex) -> (px,dx,nub (tx ++[[x,y]| x<-dx,y<-px]),False)) -- ONEORMORE x
+                         (\(px,dx,tx,ex) -> (px,dx,(tx `union` [(x,y)| x<-dx,y<-px]),True)) -- STAR x
+                         (\(px,dx,tx,ex) -> (px,dx,(tx `union` [(x,y)| x<-dx,y<-px]),False)) -- ONEORMORE x
                          (\(px,dx,tx,ex) -> (px,dx,tx,True)) -- OPTIONAL x
 
 -- Putting it all together
@@ -120,13 +120,23 @@ glushkov e = let (le,states) = glushkov_phase1_state [] (regExp2RE e)
                  ini = (I '_' 0)
                  finals = if emp then (ini:ends) else ends
                  delta = [((ini,c),[(I c x)]) | (I c x) <- starts] 
-                         ++ grouping [ (((I x nx),y),(I y ny))| [(I x nx),(I y ny)] <- transitions]
-                 vocabulary = nub (map getSymbol states)
-             in NdfaT vocabulary states [ini] finals delta
+                         ++ grouping [ ((o,y),(I y ny))| (o,(I y ny)) <- transitions]
+                 vocabulary = {-nub-} (map noindex states)
+             in NdfaT vocabulary (ini:states) [ini] finals delta
+
+mapNdfaT :: (sa -> sb) -> (va -> vb) -> NdfaT sa va -> NdfaT sb vb
+mapNdfaT fs fv (NdfaT voc sta ini fin delta) = (NdfaT voc' sta' ini' fin' delta')
+     where voc' = map fv voc
+           sta' = map fs sta
+           ini' = map fs ini
+           fin' = map fs fin
+           delta' = [((fs o, fv l), map fs ds) | ((o,l),ds) <- delta]
 
 
 
-{- Conversion between a Regular Expression and a Ndfa using Thompson's algorithm 
+
+{- Conversion between a Regular Expression and a Ndfa using 
+   Thompson's algorithm 
    https://en.wikipedia.org/wiki/Thompson%27s_construction 
    Properties of the produced automaton:
       has exactly ONE initial state
@@ -177,10 +187,18 @@ regExp2Ndfa' (Star p) n = ( NdfaT v' q' [s'] [z'] delta' , (np+1) )
         s' = n
         z' = np
         delta'= [((s',Eps),[sp]), ((zp,Eps),[z'])
-                ,((zp,Eps),[sp]), ((z',Eps),[s'])] 
+                ,((zp,Eps),[sp]), ((s',Eps),[z'])] -- isto estava mal
                 ++ dp 
 regExp2Ndfa' (OneOrMore e) n = regExp2Ndfa' (Then e (Star e)) n
 regExp2Ndfa' (Optional e) n = regExp2Ndfa' (Or Epsilon e) n
+
+
+--joinFinals :: Eq st => [((st, Maybe sy), [st])] -> [st] -> [st] -> [((st, Maybe sy), [st])]
+--joinFinals [] finals inits = [((x,Nothing),inits) | x <- finals]
+--joinFinals (((x,Nothing),y):ds) finals inits 
+--       | x `elem` finals = ((x,Nothing),y++inits):joinFinals ds (delete x finals) inits 
+--       | otherwise = ((x,Nothing),y):joinFinals ds finals inits
+--joinFinals (d:ds) finals inits = d:joinFinals ds finals inits
 
 
 {- Alternative version where the counter is local for each symbol
@@ -215,5 +233,3 @@ glushkov_phase1_state_alt state (OPTIONAL e) =
       in (OPTIONAL ee, state')
 
 -}
-
-
