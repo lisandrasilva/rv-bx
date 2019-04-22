@@ -11,11 +11,12 @@ data DfaF st sy = DfaF [sy]              -- Finite set of Vocabulary Symbols
                        (st -> sy -> st)  -- Transition Function
 
 {- DFA where the transitions are defined as a table -}
-data Dfa st sy = Dfa [sy]              -- Finite set of Vocabulary Symbols
-                     [st]              -- Finite set of states
-                     st                -- The start state
-                     [st]              -- The set of final states
-                     [((st,sy),st)]    -- Transition Table
+data Dfa st sy = Dfa { vocabularyD :: [sy],
+                       statesD     :: [st],
+                       initialSD   :: st,
+                       finalSD     :: [st],
+                       deltaD      :: [((st,sy),st)]
+                      }
 
 
 {- Converts all DFA into the tabulated version -}

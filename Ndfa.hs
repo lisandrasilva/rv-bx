@@ -11,11 +11,12 @@ data NdfaF st sy = NdfaF [ sy ]                      -- Vocabulary
 
 
 {- NDFA where the transitions are defined as a table -}
-data Ndfa st sy = Ndfa [ sy ]               -- Vocabulary
-                       [ st ]               -- States
-                       [ st ]               -- Start states
-                       [ st ]               -- Final states
-                       [((st,sy),st)]       -- Transition table
+data Ndfa st sy = Ndfa { vocabularyN :: [ sy ],
+                         statesN     :: [ st ],
+                         initialSN   :: [ st ],
+                         finalSN     :: [ st ],
+                         deltaN      :: [((st,sy),st)]
+                       }
 
 {- Converts all NDFA into the tabulated version -}
 class NDFA t where

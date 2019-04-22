@@ -119,8 +119,9 @@ glushkov e = let (le,states) = glushkov_phase1_state [] (regExp2RE e)
                  ini = (I '_' 0)
                  finals = if emp then (ini:ends) else ends
                  delta = [((ini,c),(I c x)) | (I c x) <- starts] 
-                 vocabulary = {-nub-} (map getSymbol states)
-             in Ndfa vocabulary (ini:states) [ini] finals delta
+                       ++ [ ((o,y),(I y ny))| (o,(I y ny)) <- transitions]
+                 vocabulary = nub (map getSymbol states)
+             in Ndfa vocabulary (ini:states) [ini] finals (sort delta)
 
 mapNdfa :: (sa -> sb) -> (va -> vb) -> Ndfa sa va -> Ndfa sb vb
 mapNdfa fs fv (Ndfa voc sta ini fin delta) = (Ndfa voc' sta' ini' fin' delta')
