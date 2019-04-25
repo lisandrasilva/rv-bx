@@ -104,13 +104,11 @@ rearrangeS ((os,sy),dsts) q = case [((o,sy),dd) | o <- os \\ (concat $ delete os
                              [] -> error "View not consistent with source"
                              x  -> x
 
--- ver se não há nenhuma função que só adiciona a uma lista se ele ainda não estiver lá (também posso definir)
-addTransition :: Dfa [st] sy -> (([st],sy), [st]) -> Dfa [st] sy
-addTransition (Dfa v q s z d) edge@((os,symb),ds) = Dfa nv nq s nz nd
-    let ds = case lookup (os,sym) d of
+-- Adds a new transition no a DFA
+addTransition :: (Eq st, Eq sy) => Dfa [st] sy -> (([st],sy), [st]) -> Dfa [st] sy
+addTransition (Dfa v q s z d) edge@((os,symb),ds) = Dfa nv nq s z nd
+    where nd = case lookup (os,symb) d of
             Just x -> error "Dfa cannot have a transition with the same symbol for the same state"
             Nothing -> edge:d
-        nq = nub (q ++ os ++ ds)
-
-
-
+          nq = nub (q ++ [os] ++ [ds])
+          nv = nub (symb:v)
