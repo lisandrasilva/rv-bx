@@ -22,6 +22,6 @@ A bidirectional transformation consists of a pair of functions: a _get_ function
  - put s (get s) = s     (GetPut)
  - get (put s v) = v     (PutGet)
 
- 
+The present work implements a Bidirectional Transformation between NDFA and DFA, where the NDFA is the source and the DFA is the view. The NDFA used is the result from the Glushkov's Algorithm which means that it has no epsilon transitions, and the _get_ (from NDFA to DFA) function is the Powerset construction algorithm. A _put_ function receiving a NDFA and a (possibly modified) DFA was defined and returns the updated NDFA.
 
 
