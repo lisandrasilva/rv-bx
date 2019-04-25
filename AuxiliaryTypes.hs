@@ -1,5 +1,27 @@
 module AuxiliaryTypes where
 
+---- ERROR data type
+data Error a = Error String | Ok a deriving Eq
+
+instance Show a => Show (Error a) where
+     show (Error x) = "Error: " ++ x
+     show (Ok a) = show a
+
+instance Functor Error where
+  fmap f (Ok x) = Ok (f x)
+  fmap _ (Error e) = (Error e)
+
+instance Applicative Error where
+  pure x = Ok x
+  (Ok f) <*> (Ok x) = Ok (f x)
+  _ <*> (Error m) = Error m
+
+instance Monad Error where
+  (Ok x) >>= f = f x
+  (Error m) >>= _ = Error m
+  fail m = Error m
+
+
 data Indexed a = I a Int deriving (Eq,Ord)
 getSymbol (I a _) = a
 getIndex (I _ i) = i

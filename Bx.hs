@@ -17,10 +17,10 @@ import Ndfa2Dfa
 -}
 putNdfa :: Ndfa (Indexed Char) Char 
         -> Dfa [Indexed Char] Char
-        -> Either String (Ndfa (Indexed Char) Char)
+        -> Error (Ndfa (Indexed Char) Char)
 putNdfa ndfa@(Ndfa v1 q1 s1 z1 delta1) dfa@(Dfa v2 q2 s2 z2 delta2) = 
-    if wellBuilt dfa then Right (putNdfa' ndfa 0 dfa)
-    else Left "View is not correct"
+    if wellBuilt dfa then putNdfa' ndfa 0 dfa
+    else Error "View is not correct"
 
 {-  Checks if a DFA is well built (assuming that it was originated from a glushkov Ndfa 
     with powerset construction):
@@ -56,8 +56,8 @@ reachableNodes delta (n:ns) acc = reachableNodes delta x (n:acc)
 {- Given a NDFA, an integer corresponding to the valid transitions in the source and a DFA
    reflects the changes in the DFA into the DFA
 -}
-putNdfa' :: (Ord st, Ord sy) => Ndfa st sy -> Int -> Dfa [st] sy -> Ndfa st sy
-putNdfa' (Ndfa v1 q1 s1 z1 d1) n (Dfa v2 q2 s2 z2 []) = (Ndfa v q s z d)
+putNdfa' :: (Ord st, Ord sy) => Ndfa st sy -> Int -> Dfa [st] sy -> Error (Ndfa st sy)
+putNdfa' (Ndfa v1 q1 s1 z1 d1) n (Dfa v2 q2 s2 z2 []) = Ok (Ndfa v q s z d)
     where v = v2
           q = nub $ concat q2
           s = s1
@@ -103,12 +103,3 @@ rearrangeS :: Eq st => (([st], sy), [st]) -> [[st]] -> [((st, sy), st)]
 rearrangeS ((os,sy),dsts) q = case [((o,sy),dd) | o <- os \\ (concat $ delete os q), dd <- dsts] of
                              [] -> error "View not consistent with source"
                              x  -> x
-
--- Adds a new transition no a DFA
-addTransition :: (Eq st, Eq sy) => Dfa [st] sy -> (([st],sy), [st]) -> Dfa [st] sy
-addTransition (Dfa v q s z d) edge@((os,symb),ds) = Dfa nv nq s z nd
-    where nd = case lookup (os,symb) d of
-            Just x -> error "Dfa cannot have a transition with the same symbol for the same state"
-            Nothing -> edge:d
-          nq = nub (q ++ [os] ++ [ds])
-          nv = nub (symb:v)
