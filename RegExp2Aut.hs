@@ -5,6 +5,7 @@ import AuxiliaryTypes
 import RegExp
 import Ndfa
 
+
 -- Glushkov Algorithm --- 
 -- https://en.wikipedia.org/wiki/Glushkov%27s_construction_algorithm
 
@@ -119,9 +120,9 @@ glushkov e = let (le,states) = glushkov_phase1_state [] (regExp2RE e)
                  ini = (I '_' 0)
                  finals = if emp then (ini:ends) else ends
                  delta = [((ini,c),(I c x)) | (I c x) <- starts] 
-                       ++ [ ((o,y),(I y ny))| (o,(I y ny)) <- transitions]
+                       ++ [((x,y),(I y n)) | (x, (I y n)) <- transitions]
                  vocabulary = nub (map getSymbol states)
-             in Ndfa vocabulary (ini:states) [ini] finals (sort delta)
+             in Ndfa vocabulary (ini:states) [ini] finals delta
 
 mapNdfa :: (sa -> sb) -> (va -> vb) -> Ndfa sa va -> Ndfa sb vb
 mapNdfa fs fv (Ndfa voc sta ini fin delta) = (Ndfa voc' sta' ini' fin' delta')
@@ -130,3 +131,61 @@ mapNdfa fs fv (Ndfa voc sta ini fin delta) = (Ndfa voc' sta' ini' fin' delta')
            ini' = map fs ini
            fin' = map fs fin
            delta' = [((fs o, fv l), fs ds) | ((o,l),ds) <- delta]
+
+
+{- Conversion between a Regular Expression and a Ndfa using 
+   Thompson's algorithm 
+   https://en.wikipedia.org/wiki/Thompson%27s_construction 
+   Properties of the produced automaton:
+      has exactly ONE initial state
+      has exactly ONE final state
+      the number of transitions from any state is at most TWO
+-}
+
+thompson :: RegExp -> Ndfa Int (Eps Char)
+thompson er = fst (regExp2Ndfa' er 1)
+
+regExp2Ndfa' :: RegExp -> Int -> (Ndfa Int (Eps Char),Int)
+-- regExp2Ndfa e n = (a,p) where a is an automaton with states n..(p-1)
+regExp2Ndfa' Empty n = ( Ndfa [] [sa,za] [sa] [za] delta , n+2 )
+    where sa = n
+          za = n+1
+          delta = []
+
+regExp2Ndfa' (Epsilon) n = ( Ndfa [] [sa,za] [sa] [za] delta , n+2 )
+    where sa = n 
+          za = n+1
+          delta = [((sa,Eps),za)]
+
+regExp2Ndfa' (Literal l) n = ( Ndfa [Symb l] [sa,za] [sa] [za] delta , n+2)
+  where sa = n
+        za = n+1
+        delta=[((sa,Symb l),za)]
+regExp2Ndfa' (Then p q) n = ( Ndfa v' q' s' z' delta' , nq)
+  where (Ndfa vp qp [sp] [zp] dp , np) = regExp2Ndfa' p n
+        (Ndfa vq qq [sq] [zq] dq , nq) = regExp2Ndfa' q np
+        v' = vp ++ vq
+        q' = qp ++ qq
+        s' = [sp]
+        z' = [zq]
+        delta' = ((zp,Eps),sq):(dp ++ dq)
+regExp2Ndfa' (Or p q) n = ( Ndfa v' q' [s'] [z'] delta' , (nq+1))
+  where (Ndfa vp qp [sp] [zp] dp , np) = regExp2Ndfa' p (n+1)
+        (Ndfa vq qq [sq] [zq] dq , nq) = regExp2Ndfa' q np
+        v' = vp ++ vq 
+        q' = [s',z'] ++ qp ++ qq
+        s' = n
+        z' = nq
+        delta' = [((s',Eps),sp),((zp,Eps),z')] ++ dp ++ dq 
+
+regExp2Ndfa' (Star p) n = ( Ndfa v' q' [s'] [z'] delta' , (np+1) )
+  where (Ndfa vp qp [sp] [zp] dp , np) = regExp2Ndfa' p (n+1)
+        v' = vp 
+        q' = qp
+        s' = n
+        z' = np
+        delta'= [((s',Eps),sp), ((zp,Eps),z')
+                ,((zp,Eps),sp), ((s',Eps),z')]
+                ++ dp 
+regExp2Ndfa' (OneOrMore e) n = regExp2Ndfa' (Then e (Star e)) n
+regExp2Ndfa' (Optional e) n = regExp2Ndfa' (Or Epsilon e) n

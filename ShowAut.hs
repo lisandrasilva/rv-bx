@@ -100,16 +100,16 @@ displayFA d = do writeFile "__.dot" (subsdoublequote (fa2Dot d))
                  system "open __.dot.png"
 
 
-dotNdfaDfa e = do let fname = "__"
-                  putStrLn (showRE e)
-                  let an = glushkov e
-                  let n  = fa2Dot an
-                  let ad = n2D an
-                  let d  = fa2Dot ad
-                  writeFile (fname ++ "N.dot") (subsdoublequote n)
-                  writeFile (fname ++ "D.dot") (subsdoublequote d)
-                  system ("dot -Tpng -O " ++ fname ++"N.dot")
-                  system ("dot -Tpng -O " ++ fname ++"D.dot")
-                  system ("open " ++ fname ++ "N.dot.png")
-                  system ("open " ++ fname ++ "D.dot.png")
+getAutomata e = do let fname = "__"
+                   putStrLn (showRE e)
+                   let an = glushkov e
+                   let n  = fa2Dot an
+                   let ad = nonDet2Det an
+                   let d  = fa2Dot ad
+                   writeFile (fname ++ "N.dot") (subsdoublequote n)
+                   writeFile (fname ++ "D.dot") (subsdoublequote d)
+                   system ("dot -Tpng -O " ++ fname ++"N.dot")
+                   system ("dot -Tpng -O " ++ fname ++"D.dot")
+                   system ("open " ++ fname ++ "N.dot.png")
+                   system ("open " ++ fname ++ "D.dot.png")
 

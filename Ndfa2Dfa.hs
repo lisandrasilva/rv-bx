@@ -10,13 +10,13 @@ import Ndfa
     Rabin–Scott powerset construction
     https://en.wikipedia.org/wiki/Powerset_construction
 -}
-n2D :: (NDFA t, Ord st, Eq sy) => t st sy -> Dfa [st] sy
-n2D a = let (Ndfa voc stats starts finals delta) = injNDFA a
-            starts' = starts
-            finals' = [x | x<-stats', not(null(x `intersect` finals))]
-            (stats',delta') = closedTab delta [] [] [starts']
-            voc' = voc
-        in Dfa voc' stats' starts' finals' delta'
+nonDet2Det :: (NDFA t, Ord st, Eq sy) => t st sy -> Dfa [st] sy
+nonDet2Det a = let (Ndfa voc stats starts finals delta) = injNDFA a
+                   starts' = starts
+                   finals' = [x | x<-stats', not(null(x `intersect` finals))]
+                   (stats',delta') = closedTab delta [] [] [starts']
+                   voc' = voc
+               in Dfa voc' stats' starts' finals' delta'
 
 {-  Given the Ndfa transition table computes the transition table for the Dfa -}
 closedTab :: (Ord st, Eq sy) => 
