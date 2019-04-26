@@ -19,7 +19,7 @@ putNdfa :: Ndfa (Indexed Char) Char
         -> Dfa [Indexed Char] Char
         -> Error (Ndfa (Indexed Char) Char)
 putNdfa ndfa@(Ndfa v1 q1 s1 z1 delta1) dfa@(Dfa v2 q2 s2 z2 delta2) = 
-    if wellBuilt dfa then putNdfa' ndfa 0 dfa
+    if wellBuilt dfa then putNdfa1 ndfa dfa
     else Error "View is not correct"
 
 {-  Checks if a DFA is well built (assuming that it was originated from a glushkov Ndfa 
@@ -56,45 +56,32 @@ reachableNodes delta (n:ns) acc = reachableNodes delta x (n:acc)
 {- Given a NDFA, an integer corresponding to the valid transitions in the source and a DFA
 putNdfa' :: (Ord st, Ord sy) => Ndfa st sy -> Int -> Dfa [st] sy -> Error (Ndfa st sy)
 putNdfa' (Ndfa v1 q1 s1 z1 d1) n (Dfa v2 q2 s2 z2 []) = Ok (Ndfa v q s z d)
-    where v = v2
-          q = nub $ concat q2
-          s = s1
-          z = f z1 (concat z2)
-          d = sort $ take n d1
-          f [] cz2 = cz2
-          f (h:t) cz2 = if h `elem` cz2 then h:(f t (filter (/= h) cz2))
-                        else f t cz2
-putNdfa' (Ndfa v1 q1 s1 z1 delta1) n (Dfa v2 q2 s2 z2 (d2:ds2)) = 
-      if viewModified delta1 d2 then 
-        case newEdges of 
-          [] -> Error "View is not consistent with the source"
-          x  -> putNdfa' (Ndfa v1 q1 s1 z1 (sc `union` newEdges)) nn (Dfa v2 q2 s2 z2 ds2)
-      else putNdfa' (Ndfa v1 q1 s1 z1 (sc ++ c ++ e)) nc (Dfa v2 q2 s2 z2 ds2)
-    where (sc,ukn) = splitAt n delta1
-          (c,e) = splitEdges ukn d2
-          ((os,sy),dsts) = d2
-          newEdges = [((o,sy),dd) | o <- os \\ (concat $ delete os q2), dd <- dsts]
-          nn = n + length newEdges
-          nc = n + length c
 -}
-
-putNdfa' :: (Ord st, Ord sy) => Ndfa st sy -> Int -> Dfa [st] sy -> Error (Ndfa st sy)
-putNdfa' (Ndfa v1 q1 s1 z1 d1) n (Dfa v2 q2 s2 z2 []) = Ok (Ndfa v q s z d)
+putNdfa1 :: (Ord st, Ord sy) => Ndfa st sy  -> Dfa [st] sy -> Error (Ndfa st sy)
+putNdfa1 (Ndfa v1 q1 s1 z1 d1) (Dfa v2 q2 s2 z2 d2) = Ok (Ndfa v q s z d)
     where v = v2
           q = nub $ concat q2
           s = s1
           z = f z1 (concat z2)
-          d = sort $ take n d1
+          d = getTable d1 (zip d2 (repeat [])) q2
           f [] cz2 = cz2
           f (h:t) cz2 = if h `elem` cz2 then h:(f t (filter (/= h) cz2))
                         else f t cz2
-putNdfa' (Ndfa v1 q1 s1 z1 delta1) n (Dfa v2 q2 s2 z2 (d2:ds2)) = 
-      putNdfa' (Ndfa v1 q1 s1 z1 d1') nn (Dfa v2 q2 s2 z2 ds2)
-    where (d1', nn) = if viewModified delta1 d2 then (sc ++ newEdges, n + length newEdges)
-                      else (sc ++ c ++ e, n + length c)
-          (sc,ukn) = splitAt n delta1
-          (c,e) = splitEdges ukn d2
-          newEdges = (rearrangeS d2 q2) \\ sc
+
+getTable :: (Ord st, Ord sy) => [((st,sy),st)]  -> [((([st],sy),[st]),[st])] -> [[st]] -> [((st,sy),st)]
+getTable [] ts q = let toAdd = filter (not . null . snd) [ (((os,d),ds\\rs)) | (((os,d),ds),rs) <- ts ]
+                   in concat $ map (`rearrangeS` q) toAdd
+getTable (t@((o,s),d):ts) dfaT q = 
+        let relS = [ x | x <- q , o `elem` x ]
+            trns = [ 1 | (((os,sym),ds),rs) <- dfaT , os `elem` relS , sym == s , d `elem` ds]
+            dfaT' = map (updateListAux t) dfaT
+        in if ((length relS) == (length trns)) && 
+              (not $ null relS) 
+           then t:getTable ts dfaT' q
+           else getTable ts dfaT q
+    where updateListAux ((o,s1),d) (((os,s2),ds),rs) = 
+                if o `elem` os && s1 == s2 && d `elem` ds then (((os,s2),ds),d:rs)
+                else (((os,s2),ds),rs)
 
 {-  Checks if a given entry in the Dfa's table transition was modified or not -}
 viewModified :: (Ord st, Eq sy) => [((st,sy), st)] -> (([st],sy), [st]) -> Bool
