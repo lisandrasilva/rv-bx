@@ -54,3 +54,21 @@ regexpInt = ((Literal '-') `Or` (Literal '+') `Or` Epsilon) `Then` digits `Then`
 
 re1 = Or (Then (Literal 'a') (Star (Literal 'a'))) (Then (Literal 'a') (Star (Literal 'b')))
 
+{-
+addT [a1 a2] c [c1]
+addT [c1] b [b3]
+put
+
+addT [a2] c [c1]
+addT [c1] b [b3]
+remT [a2] b [b3]
+put
+
+addT [a1 a2] c [c1]
+addT [a2] c [c1]
+addT [c1] b [b3]
+put
+remT [a2] b [b3]
+put
+-}
+
