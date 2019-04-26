@@ -1,6 +1,6 @@
 module Dfa where
 
---import Data.List
+import Data.List
 --import Data.Char
 
 {- DFA where the transitions are defined as a function -}
@@ -29,6 +29,13 @@ instance DFA Dfa where
 instance DFA DfaF where
   injDFA (DfaF voc states start finals delta) 
     = Dfa voc states start finals (tabulate delta states voc)
+
+instance (Ord sy, Ord st) => Eq (Dfa st sy)
+  where d1 == d2 = (sort $ vocabularyD d1) == (sort $ vocabularyD d2) &&
+                   (sort $ statesD d1) == (sort $ statesD d2) &&
+                   initialSD d1 == initialSD d2 &&
+                   (sort $ finalSD d1) == (sort $ finalSD d2) &&
+                   (sort $ deltaD d1) == (sort $ deltaD d2)
 
 {- Given a delta function, the states and the vocabulary computes the transition table -}
 tabulate :: (a -> b -> c) -> [a] -> [b] -> [((a,b),c)]
