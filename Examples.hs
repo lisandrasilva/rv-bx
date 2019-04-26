@@ -55,6 +55,7 @@ regexpInt = ((Literal '-') `Or` (Literal '+') `Or` Epsilon) `Then` digits `Then`
 re1 = Or (Then (Literal 'a') (Star (Literal 'a'))) (Then (Literal 'a') (Star (Literal 'b')))
 
 {-
+Examples to use the menuBX function
 addT [a1 a2] c [c1]
 addT [c1] b [b3]
 put
