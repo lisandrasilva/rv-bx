@@ -3,6 +3,7 @@ module Interpreter where
 import Data.List
 import Data.Char
 import System.Process
+import System.IO
 import Ndfa
 import Dfa
 import Ndfa2Dfa
@@ -80,7 +81,8 @@ readLabel _ = fail "Missing transition label"
 
 
 readCom :: IO Command
-readCom = do line <- getLine
+readCom = do hSetBuffering stdin LineBuffering
+             line <- getLine
              case readCommand line of
                 Ok c -> return c
                 Error err -> (putStrLn err) >> readCom
@@ -101,8 +103,9 @@ menucycle nfa dfa = do putStrLn $ unlines $ help
                        displayFADot nfaDotFile nfa
                        displayFADot dfaDotFile dfa
                        com <- readCom
-                       putStrLn ("Command: "  ++ (show com)) 
-                       case executeCommand com nfa dfa of
+                       putStrLn ("Command: "  ++ (show com))
+                       res <- executeCommand com nfa dfa
+                       case res of
                           Left (Error msg)  -> (putStrLn msg) >> menucycle nfa dfa
                           Left (Ok (nfa',dfa')) -> menucycle nfa' dfa'
                           Right r -> return r
@@ -128,26 +131,32 @@ displayFADot file aut = do writeFile file (fa2Dot aut)
 executeCommand :: Command 
                -> (Ndfa (Indexed Char) Char) 
                -> (Dfa [Indexed Char] Char) 
-               -> Either (Error (Ndfa (Indexed Char) Char,Dfa [Indexed Char] Char))
-                         (Ndfa (Indexed Char) Char) 
+               -> IO (Either 
+                         (Error (Ndfa (Indexed Char) Char, Dfa [Indexed Char] Char))
+                         (Ndfa (Indexed Char) Char) )
 executeCommand c ndfa dfa 
      = case c of 
          AddTransition source dest label 
             -> case dfaAddTrans ((source,label),dest) dfa of
-                 Error s -> Left (Error s)
-                 Ok dfa' -> Left (Ok (ndfa,dfa'))
+                 Error s -> return $ Left (Error s)
+                 Ok dfa' -> return $ Left (Ok (ndfa,dfa'))
          RemoveTransition source dest label 
             -> case dfaRemTrans ((source,label),dest) dfa of
-                 Error s -> Left (Error s)
-                 Ok dfa' -> Left (Ok (ndfa,dfa'))
+                 Error s -> return $ Left (Error s)
+                 Ok dfa' -> return $Left (Ok (ndfa,dfa'))
          RemState state 
             -> case dfaRemState state dfa of
-                 Error s -> Left (Error s)
-                 Ok dfa' -> Left (Ok (ndfa,dfa'))
+                 Error s -> return $ Left (Error s)
+                 Ok dfa' -> return $ Left (Ok (ndfa,dfa'))
          Put -> case putNdfa ndfa dfa of
-                 Error s  -> Left (Error s)
-                 Ok ndfa' -> Left (Ok (ndfa',dfa))
-         End -> Right ndfa
+                 Error s  -> return $ Left (Error s)
+                 Ok ndfa' ->  let dfa' = nonDet2Det ndfa'
+                              in if dfa' == dfa then return $ Left (Ok (ndfa',dfa'))
+                                 else do putStrLn "View is not consistent with the source. Continue (y/n)"
+                                         x <- getLine
+                                         if x == "y" then return $ Left (Ok (ndfa',dfa'))
+                                         else return $ Left (Ok (ndfa, nonDet2Det ndfa))
+         End -> return $ Right ndfa
 
 
 ------
@@ -163,14 +172,14 @@ dfaAddTrans t@((s,l),d) (Dfa voc stat ini fin delta) =
              Just _ -> Error "There exists a transition with that label from that state"
              Nothing -> Ok (Dfa (voc `union` [l]) (stat `union` [s,d]) ini fin (delta `union` [t]) )
 
-allEqual :: [Indexed Char] -> Bool
-allEqual ((I x nx):(I y ny):xys) = x==y && allEqual ((I y ny):xys)
-allEqual _ = True
-
 
 dfaRemTrans t@((s,l),d) (Dfa voc stat ini fin delta) 
    = if not (t `elem` delta) then Error "Transition does not exist"
      else Ok (Dfa voc stat ini fin (delete t delta))
+
+allEqual :: [Indexed Char] -> Bool
+allEqual ((I x nx):(I y ny):xys) = x==y && allEqual ((I y ny):xys)
+allEqual _ = True
 
 dfaRemState :: [Indexed Char]
             -> (Dfa [Indexed Char] Char) 
