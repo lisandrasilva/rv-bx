@@ -1,11 +1,11 @@
-	\section{Runtime Verification}
-	\textit{Runtime Verification} (RV) is a dynamic analysis method aiming at checking whether a run of the system under scrutiny satisfies a given correctness property.
+    \section{Runtime Verification}
+    \textit{Runtime Verification} (RV) is a dynamic analysis method aiming at checking whether a run of the system under scrutiny satisfies a given correctness property.
 
   \begin{figure}
-	\centering
-	\includegraphics [scale=0.4]{Images/rv.png}
-	\caption{An overview of the RV process}
-	\label{rv}
+    \centering
+    \includegraphics [scale=0.4]{Images/rv.png}
+    \caption{An overview of the RV process}
+    \label{rv}
 \end{figure}
 
  The components of a RV environment are the system to be checked and a set of properties to be checked against the system execution. Properties can be expressed in a formal specification language, or even as a program in a general-purpose programming language. From a given property, a monitor is generated, i.e., a decision procedure for that property - \textit{monitor synthesis}. The system is instrumented to generate the relevant events to be fed into the monitor - \textit{system instrumentation}. In the next step, the system's execution is analyzed by the monitor - \textit{execution analysis}. The monitor is able to consume the events produced by the running system and, for each consumed event, emits a verdict indicating the status of the property, depending on the event sequence seen so far. Finally, the monitor sends feedback to the system so that more specific corrective actions can be taken (Figure \ref{rv}) ~\cite{rvart}.
