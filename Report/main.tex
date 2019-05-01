@@ -1,4 +1,4 @@
-\usepackage{}% LLNCS macro package for Springer Computer Science proceedings;
+% LLNCS macro package for Springer Computer Science proceedings;
 % Version 2.20 of 2017/10/04
 %
 \documentclass[runningheads]{llncs}
@@ -16,6 +16,8 @@
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{gensymb}
+\usepackage{wrapfig}
+\usepackage{amssymb}
 %\setcounter{secnumdepth}{3}
 % Used for displaying a sample figure. If possible, figure files should
 % be included in EPS format.
@@ -49,15 +51,15 @@
 	%
 	%
 	%
-	\input{Sections/Introduction.tex}
+	\input{Sections/1_Introduction.tex}
 
 	\par
 	
-    \input{Sections/RV.tex}
+    \input{Sections/2_RV.tex}
 	
-    \input{Sections/RE_DFA.tex}
+    \input{Sections/3_Re_Fa.tex}
 	
-	\section{Bidirectional Transformations}
+    \input{Sections/4_BX.tex}
 	
 	\section{Implementation}
 	\subsection{Reasoning about BX}
