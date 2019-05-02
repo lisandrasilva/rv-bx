@@ -1,0 +1,10 @@
+\section{Bidirectional Transformations}
+
+Bidirectional Transformations (BX) provide a mechanism for maintaining consistency between two pieces of data. A bidirectional transformation consists of a pair of functions: a \textit{get} function that extracts part of information from a source to produce a view, and a \textit{put} function that accepts an updated view and the original source, producing an updated source that is consistent with the new view. The pair of functions needs to satisfy the \textit{well-behavedness} laws:
+
+\begin{flalign*}
+    put\ s\ (get\ s) = s \quad (GetPut) \\
+    get\ (put\ s\ v)\ = v \quad (PutGet)
+\end{flalign*}
+
+The \textit{GetPut} law says that \textit{put} an unmodified view \textit{get s} into the source should produce the same unmodified source $s$. The \textit{PutGet} law says that getting from an updated source computed by \textit{put}ting a view $v$ should retrieve the same $v$. 
