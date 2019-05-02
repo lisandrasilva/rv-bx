@@ -157,7 +157,7 @@ Is another well-known algorithm to convert a give RE into a NDFA. Is similar to 
         L' = (PB^* \cap B^*D)\ \backslash\ B^* (B^2 \backslash F) B^*
     \end{equation*}
     
-    \item \textbf{Step 4} - erasing the delineation, giving to each letter of $B$ the letter of $A$ it used to be.
+    \item \textbf{Step 4} - erasing the delinearization, giving to each letter of $B$ the letter of $A$.
 \end{itemize}
 
 Given the regular expression $\bf e = (a(ab)^*)^* + (ba)^*$, would produce the NDFA in Figure \ref{fig:ndfaG}, without performing Step 4, to perform this step one only needs to remove the index from each symbol in the nodes.
