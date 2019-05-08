@@ -18,7 +18,9 @@
 \usepackage{gensymb}
 \usepackage{wrapfig}
 \usepackage{amssymb}
-%\setcounter{secnumdepth}{3}
+\usepackage{url}
+\usepackage{mathtools}
+
 % Used for displaying a sample figure. If possible, figure files should
 % be included in EPS format.
 %
@@ -28,13 +30,13 @@
 
 \begin{document}
 	%
-	\title{Bidirectional Transformations between specifications languages for Runtime Verification}
+	\title{Bidirectional Transformations in Specifications for Runtime Verification}
 	%
 	%\titlerunning{Abbreviated paper title}
 	% If the paper title is too long for the running head, you can set
 	% an abbreviated paper title here
 	%
-	\author{Lisandra Silva a73559@uminho.pt}
+	\author{Lisandra Silva}
 	%
 	% First names are abbreviated in the running head.
 	% If there are more than two authors, 'et al.' is used.
@@ -44,7 +46,7 @@
 	\maketitle              % typeset the header of the contribution
 	
 	\begin{abstract}
-		Use of Bidirectional Transformations to synchronize different specifications for Runtime Verification. More specifically to synchronize a specification expressed as a Regular Expression and another expressed as a Finite State Machine.
+		There are a few different specifications languages to specify monitors for Runtime Verification, and reason about the same property in different specification languages is not straightforward. The present work uses Bidirectional Transformations to synchronize different specifications for Runtime Verification. More specifically to synchronize a specification expressed as a Regular Expression and another expressed as a Finite State Machine.
 	
 		\keywords{Bidirectional Transformations  \and Runtime Verification \and Regular Expressions \and Non-deterministic Finite Automata \and Deterministic Finite Automata}
 	\end{abstract}
@@ -56,21 +58,14 @@
 	\par
 	
     \input{Sections/2_RV.tex}
+    
+    \input{Sections/4_BX.tex}
 	
     \input{Sections/3_Re_Fa.tex}
 	
-    \input{Sections/4_BX.tex}
-	
-	\section{Implementation}
-	\subsection{Reasoning about BX}
-	
-	\subsection{Get function from RE to NDFA}
-	
-	\subsection{Get function from NDFA to DFA}
-	
-	\subsection{Put back function from DFA to NDFA}
-	
-	\section{Future work}
+    %\input{Sections/5_Implementation.tex}
+    
+    %\input{Sections/6_Conclusion.tex}
 	
 	
 	
