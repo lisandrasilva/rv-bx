@@ -1,10 +1,25 @@
 \section{Bidirectional Transformations}
+\label{chapter:BX}
 
-Bidirectional Transformations (BX) provide a mechanism for maintaining consistency between two pieces of data. A bidirectional transformation consists of a pair of functions: a \textit{get} function that extracts part of information from a source to produce a view, and a \textit{put} function that accepts an updated view and the original source, producing an updated source that is consistent with the new view. The pair of functions needs to satisfy the \textit{well-behavedness} laws:
+Bidirectional Transformations (BX) provide a mechanism for maintaining consistency between two pieces of data. A bidirectional transformation consists of a pair of functions: a \textit{get} function that may discard part of information from a source to produce a view, and a \textit{put} function that accepts a source and a possible modified view, and reflects the changes in the source producing an updated source that is consistent with that view. The pair of functions should be \textit{well-behaved} satisfying the next laws:
 
 \begin{flalign*}
     put\ s\ (get\ s) = s \quad (GetPut) \\
     get\ (put\ s\ v)\ = v \quad (PutGet)
 \end{flalign*}
 
-The \textit{GetPut} law says that \textit{put} an unmodified view \textit{get s} into the source should produce the same unmodified source $s$. The \textit{PutGet} law says that getting from an updated source computed by \textit{put}ting a view $v$ should retrieve the same $v$. 
+The \textit{GetPut} law requires that if no changes are made on the view \textit{get s} then the \textit{put} function should produce the same unmodified source $s$. The \textit{PutGet} law says that all the changes in the view should be reflected in the source, as so getting from an updated source computed by \textit{put}ting a view $v$ should retrieve the same $v$ ~\cite{bigul,brul}.
+
+The straightforward approach to write a bidirectional transformation is to write two separate functions in any language and show that they satisfy the \textit{well-behavedness} rules. Although this ad hoc solution provides full control over both \textit{get} and \textit{put} transformations, verifying that they are \textit{well-behaved} requires intricate reasoning about their behaviours. Besides, any modification to one of the transformations requires a redefinition of the other transformation as well as a new \textit{well-behavedness} proof ~\cite{bigul,boomerang}. 
+
+A better alternative is to write a single program where both transformations can be described at the same time, using for that a \textit{bidirectional programming language}. Many bidirectional languages have been proposed during the past years and the design challenge for all of them lies in striking a balance between expressiveness and reliability. 
+
+There are two approaches when designing bidirectional programming languages: 
+
+\begin{itemize}
+    \item \textit{get-based} - allows the programmer to write the \textit{get} function, deriving a suitable \textit{putback} function. The problem with this approach is that the \textit{get} function may not be injective and so there may exist many possible put functions that can be combined with it to form a valid BX.
+    
+    \item \textit{putback-based} - allows the programmer to write the \textit{put} from which the only \text{get} function is automatically  derived. The resulting pair of functions must form a \textit{well-behaved} bidirectional transformation.
+\end{itemize}
+
+Despite this, as the present work is still exploratory, it focused on studying the possibility of implement a BX between RE and DFA with the first alternative, where the two functions \textit{get} and \textit{put} are written separately. 

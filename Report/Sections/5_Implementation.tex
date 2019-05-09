@@ -1,5 +1,5 @@
 \section{Implementation}
-This section will describe the process of implementing BX between a RE and a DFA. It will start by describing the reasoning about how to implement the BX and will follow by explaining the implementation process, including the explanation about the algorithm's choices. Finally, it will present the \textit{put} strategy defined for a BX between NDFA and DFA.
+This section describes the process of implementing BX between a RE and a DFA. It will start by describing the reasoning about how to implement the BX and will follow by explaining the implementation process, including the explanation about the algorithm's choices. Finally, it will present the \textit{put} strategy defined for a BX between NDFA and DFA.
 
 The source code of the implementation is available in the Github repository:  \url{https://github.com/lisandrasilva/rv-bx}.
 
@@ -62,11 +62,11 @@ Let's consider the NDFA in Figure \ref{fig:epsilon} and its correspondent DFA in
     \label{fig:epsilondfa}
 \end{figure}
 
-By analyzing  the pictures is very hard to reason about a \textit{putback} function when the NDFA has $\epsilon$-transitions. For instance, in the obtained DFA of the given example (Figure \ref{fig:epsilondfa}) all the nodes are dependent on the transitions of the 'C' node in the NDFA, which means that when adding or removing transitions from or to node 'C' in the NDFA, this changes will be reflected in all the nodes with 'C' in the DFA (because that is what is demanded by the Powerset construction).
+By analyzing  those figures is becomes clear that it is hard to reason about a \textit{putback} function when the NDFA has $\epsilon$-transitions. For instance, in the obtained DFA of the given example (Figure \ref{fig:epsilondfa}) all the nodes are dependent on the transitions of the 'C' node in the NDFA, which means that when adding or removing transitions from or to node 'C' in the NDFA, these changes will be reflected in all the nodes with 'C' in the DFA (because that is what is demanded by the Powerset construction).
 
 This fact restricts too much the possible changes in the view, and even though we designed a pseudo-algorithm to \textit{put} function in many cases it didn't satisfied the GetPut law. 
 
-\subsubsection{NDFA \textit{$\epsilon$-free}} Figure \ref{fig:glundfa} depicts a NDFA \textit{$\epsilon$-free} equivalent to the NDFA in Figure \ref{fig:epsilondfa} and in Figure \ref{fig:gludfa} its the correspondent DFA. 
+\subsubsection{NDFA \textit{$\epsilon$-free}} Figure \ref{fig:glundfa} depicts a \textit{$\epsilon$-free} NDFA equivalent to the NDFA in Figure \ref{fig:epsilondfa} and in Figure \ref{fig:gludfa} its the correspondent DFA. 
 
 \begin{figure}[H]
     \centering
@@ -82,9 +82,9 @@ This fact restricts too much the possible changes in the view, and even though w
     \label{fig:gludfa}
 \end{figure}
 
-As we can conclude by analyzing the two automata, there are less dependencies, the only dependency is between nodes \texttt{[a1,a2]} and \texttt{[a2]}, because both have the node \texttt{a2} from the NDFA, therefore changes in this node will be reflected in both nodes in the view, even only one was modified in the first place. 
+By analyzing the two automata, we can conclude that there are less dependencies, the only dependency is between nodes \texttt{[a1,a2]} and \texttt{[a2]}, because both have the node \texttt{a2} from the NDFA. Therefore changes in this node will be reflected in both nodes in the view, even when only one was modified in the first place. 
 
-However, as it allows a wider range of possible changes on the view we decided to choose the \textit{$\epsilon$-free} NDFA to define the \textit{put} strategy between NDFA and DFA, which means that the \textit{get} function from RE to NDFA should be the Glushkov's construction algorithm. 
+However, as it allows a wider range of possible changes on the view, we decided to choose the \textit{$\epsilon$-free} NDFA to define the \textit{put} strategy between NDFA and DFA, meaning that the \textit{get} function from RE to NDFA should be the Glushkov's construction algorithm. 
 
 \subsection{Put back from DFA to NDFA}
 
@@ -140,7 +140,9 @@ Table \ref{tablestruct} shows how the automata in Figures \ref{fig:glundfa} and 
 \end{table}
 
 \subsubsection{Reflecting transition table}
-The function \texttt{getTable} is responsible for reflecting the DFA transition table into the NDFA transition table. Therefore, it receives as argument the NDFA transition table, the DFA transition table and the set of states $q$ of the DFA (to perform checks) and returns the updated NDFA transition table. The argument with the DFA transition table is in fact zipped with an accumulator that will save, for each DFA transition $os \xrightarrow{s} ds$, the subset of $ds$ of the NDFA transitions that were validated so far. Following is the code but this will be better understood with the example given afterwards. 
+The function \texttt{getTable} is responsible for reflecting the DFA transition table into the NDFA transition table. Therefore, it receives as argument the NDFA transition table, the DFA transition table and the set of states $q$ of the DFA (to perform checks) and returns the updated NDFA transition table. The argument with the DFA transition table is in fact zipped with an accumulator that will save, for each DFA transition $os \xrightarrow{s} ds$, the subset of $ds$ of the NDFA transitions that were validated so far. 
+
+The code presented below can be better understood with the example given afterwards. 
 
 \begin{verbatim}
 getTable :: (Ord st, Ord sy) =>[((st,sy),st)] 
@@ -194,7 +196,7 @@ Going back to the example in Figures \ref{fig:glundfa} and \ref{fig:gludfa}, let
 \end{figure}
 
 Table \ref{getTable} represents the arguments to the function \texttt{getTable} with the updated DFA transition table.
-As mentioned, the function \texttt{getTable} goes recursively through the NDFA transitions. For the first NDFA transition \texttt{((\_0,'a'),a1)} the function gets all the DFA states that contain \_0, which is only [\_0], and ensures that it has the transition through 'a' to a node which contains a1. As this is true due to transition \texttt{(([\_0],'a'),[a1,a2])} then a1 is added to the auxiliary accumulator list of the transition.
+As mentioned, the function \texttt{getTable} goes recursively through the NDFA transitions. For the first NDFA transition \texttt{((\_0,'a'),a1)} the function gets all the DFA states that contain \_0 (which is only [\_0]), and ensures that it has the transition through 'a' to a node which contains a1. As this is true due to the transition \texttt{(([\_0],'a'),[a1,a2])} then a1 is added to the auxiliary accumulator list of the transition.
 
 \begin{table}[H]
   \begin{center}
@@ -245,7 +247,7 @@ When analyzing NDFA transition \texttt{((a2,'b'),b3)}, all the DFA nodes that co
   \label{getTable2}
 \end{table}
 
-Table \ref{getTable2} contains the state of the transition tables after the function \texttt{getTable} already processed all the NDFA transitions. After that, the function \texttt{getTable} is recursively called with the first argument (NDFA table transtion) empty. At this point, for each DFA transition \texttt{((os,s),ds)} its corresponding auxiliary list with the subset of $ds$ that were already validated is removed from the set $ds$. If the remaining $ds$ list is empty then it means that the transition was already validated. When there are still states in the $ds$ list the new transitions in the NDFA must be created (Table \ref{getTable3}). This is done in the \texttt{rearrangeS} function. 
+Table \ref{getTable2} contains the state of the transition tables after the function \texttt{getTable} already processed all the NDFA transitions. After that, the function \texttt{getTable} is recursively called with the first argument (NDFA table transtion) empty. At this point, for each DFA transition \texttt{((os,s),ds)} its corresponding auxiliary list with the subset of $ds$ that were already validated is removed from the set $ds$. If the remaining $ds$ list is empty then it means that the transition was already validated. When there are still states in the list $ds$, the new transitions in the NDFA must be created (Table \ref{getTable3}). This is done in the \texttt{rearrangeS} function. 
 
 \begin{table}
   \begin{center}
@@ -268,7 +270,7 @@ Table \ref{getTable2} contains the state of the transition tables after the func
 \end{table}
 
 The function receives a DFA transition, the set of DFA states and creates the list of new NDFA transitions corresponding to the given DFA transition. 
-First the function computes the minimum list of NDFA transitions, excluding transitions which origin appear in other DFA nodes. 
+First the function computes the minimum list of NDFA transitions, excluding transitions whose origin appears in other DFA nodes. 
 
 \begin{verbatim}
 rearrangeS :: Eq st => (([st], sy), [st])
@@ -281,9 +283,9 @@ rearrangeS ((os,sy),dsts) q =
        else min 
 \end{verbatim}
 
-For instance, when creating the new NDFA transitions for the DFA transition \texttt{(([a1,a2],'b'),[b3])} it is only desirable create the new transition \texttt{((a1,'b'),b3)} since if a transition from \texttt{a2} is also created then when \textit{getting} again the DFA, the node \texttt{[a2]} will also have the transition, that was not created by the user, leading to violation of the GetPut law. 
+For instance, when creating the new NDFA transitions for the DFA transition \texttt{(([a1,a2],'b'),[b3])} it is only desirable to create the new transition \texttt{((a1,'b'),b3)} since, if a transition from \texttt{a2} is also created then, when \textit{getting} again the DFA, the node \texttt{[a2]} will also have that transition, which was not created by the user, leading to a violation of the GetPut law. 
 
-Sometimes it is not possible to create new transitions without violating the law, for instance if instead of the DFA transition \texttt{(([a1,a2],'b'),[b3])} we had \texttt{(([a2],'b'),[b3])}, the minimum computed list of the new NDFA transitions would be empty. This means that the edited view is not consistent with the source, because it is not possible to reflect the modifications without modify other node transitions. In this cases, the function returns all the possible transitions and the inconsistency will be handled later. 
+Sometimes it is not possible to create new transitions without violating the law. For instance, if instead of the DFA transition \texttt{(([a1,a2],'b'),[b3])} we had \texttt{(([a2],'b'),[b3])}, the minimum computed list of the new NDFA transitions would be empty. This means that the edited view is not consistent with the source, because it is not possible to reflect the modifications without modifying other node transitions. In these cases, the function returns all the possible transitions and the inconsistency will be handled later. 
 %Table \ref{getablefinal} shows the updated NDFA transition table returned by the function \texttt{getTable}.
 
 \begin{table}
@@ -311,9 +313,9 @@ Sometimes it is not possible to create new transitions without violating the law
 %For instance, taking the last example, if a new DFA transition is added (([a1,a2],c),[c1]) only the NDFA transition ((a1,c),c1) must be created since if the transition ((a2,c),c1) is also created then when \textit{getting} again the view the DFA would also have the edge (([a2],c),[c1]), that was not created by the user, and so the GetPut law would not be satisfied. When the computed \texttt{min} list is empty it means that is not possible to create new edges without interfere with other DFA nodes, that is called an inconsistency with the source. In this case the function returns all possible NDFA edges for the respective DFA transition, and the inconsistency is dealed with later. 
 
 \subsubsection{Updating NDFA Structure}
-After the table transition of the NDFA is complete it is still necessary to update the other fields of the NDFA structure, this is done by the function \texttt{putNdfaStruct}.
+After the  transition table of the NDFA is complete, it is still necessary to update the other fields of the NDFA structure. This is done by the function \texttt{putNdfaStruct}.
 
-The \textit{put} of the other fields of the structure is very straight, the most complex is the final states. For that, for each old final state the function tests if it still belongs to some of the new final states and in that case it is kept as a final state or discarded otherwise. In the end the remaining final states are added as final state. 
+The \textit{put} of the other fields of the structure is very straightforward, the most complex being the final states. For that, for each \emph{old} final state, the function tests if it still belongs to some of the new final states, and in that case, it is kept as a final state or discarded otherwise. In the end the remaining final states are added as final states. 
 
 \begin{verbatim}
 putNdfaStruct :: (Ord st, Ord sy) => Ndfa st sy  
@@ -365,18 +367,18 @@ Table \ref{sourceUpdated} shows the updated NDFA (source) given the modified DFA
   \label{sourceUpdated}
 \end{table}
 
-\subsubsection{Well built DFA}
-As the DFA can be edited by the user, and this changes will be reflected in the NDFA, it is important to guarantee that the DFA is well built before proceed with the \textit{put} function. This is guaranteed by the function \texttt{wellBuilt} that ensures the following:
+\subsubsection{Well-built DFA}
+As the DFA can be edited by the user, and as these changes will be reflected in the NDFA, it is important to guarantee that the DFA is well built before proceeding with the \textit{put} function. This is guaranteed by the function \texttt{wellBuilt} that ensures the following:
 
 \begin{itemize}
     \item Every transition from a given origin $o$ with a symbol $s$ is unique;
-    \item Every Node $x$ must be reachable from the start node;
+    \item Every Node $x$ must be reachable from the initial node;
     \item Every node must reach an accepting node;
     \item For every transition $o \xrightarrow{s} d $, each state in the destination's list of $d$ states must be prefixed by the symbol $s$ (considering the NDFA is result of Glushkov's algorithm and DFA is result of Powerset construction);
     \item The initial state cannot be modified (also a requirement of Glushkov's algorithm)
 \end{itemize}
 
-The function returns an error message for each one of the above mentioned rules in case they are violated. 
+The function returns an error message in case any of the above mentioned rules is violated. 
 
 \subsubsection{Put NDFA}
 Finally, the function \texttt{putNDFA} puts it all together: it receives the NDFA, the (possibly) updated DFA and returns an \texttt{Error NDFA}. The \texttt{Error NDFA} is a data type that can contain the (updated) NDFA if everything went well or an error message in case the given DFA was not a valid DFA. The verification of the validity of DFA is done by the function \texttt{wellBuilt} that returns an \texttt{Error Bool}, i.e. an \texttt{Ok True} case the DFA is valid or an \texttt{Error m} where \texttt{m} contains the error message.
@@ -391,6 +393,7 @@ putNdfa ndfa dfa = case wellBuilt dfa of
                     Error m -> Error m
 \end{verbatim}
 
+
 Given this \texttt{put} algorithm if we call the function \texttt{putNdfa} with the NDFA and DFA represented in Table \ref{tablestruct} (unmodified view), the output will be the same NDFA (Figure \ref{fig:glundfa}), which means that the PutGet law is satisfied. 
 If we call the function \texttt{putNdfa} with the NDFA and DFA represented in Table \ref{getTable} (updated view), and then call the \textit{get} function (powerset construction) the DFA produced will be the same (Figure \ref{fig:updatedfa}), which means that for the given example the GetPut law is satisfied. However, as mentioned before this doesn't happen when there is inconsistencies between source and view, next section explains how the program deals with them.  
 
@@ -398,11 +401,11 @@ If we call the function \texttt{putNdfa} with the NDFA and DFA represented in Ta
 \subsubsection{Inconsistencies}
 Taking again the previous example, it was possible to remove the transition \texttt{(([a2],b),[b3])} without violating the GetPut law property. However if we had removed the transition \texttt{(([a1,a2],b),[b3])} this would result in an inconsistency, because if the transition \texttt{(([a2],b),[b3])} still exists, it means that the NDFA will have the transition \texttt{((a2,b),b3)} and by the Powerset construction algorithm the transition \texttt{(([a1,a2],b),[b3])} will still be there.
 
-When an inconsistency occurs in the view, it means that is not possible to get the same view with the updated source, because the dependencies in the view were not `respected'. In this cases, the user is asked if he wants to proceed with the consistent version of the view, and in that case the source is updated with the consistent version of the view.
+When an inconsistency occurs in the view, it means that is not possible to get the same view with the updated source, because the dependencies in the view were not `respected'. In these cases, the user is asked if he wants to proceed with the consistent version of the view, and in that case the source is updated with the consistent version of the view.
 
 
 \subsubsection{Interpreter}
-It was also created an interpreter to interact with the user. The interpreter allows the user to perform a sequence of modifications on the view, that are displayed in graphs so the user can see the updated being done.
+It was also created an interpreter to interact with the user. The interpreter allows the user to perform a sequence of modifications on the view, that are displayed in graphs so the user can see the updates being done.
 The possible modifications that the user can perform are:
 
 \begin{itemize}
@@ -411,4 +414,4 @@ The possible modifications that the user can perform are:
     \item Remove node;
 \end{itemize}
 
-At any point the user can call the the \textit{put}, even when he had not performed any modification. In case the sequence of modifications result in an updated view that is not consistent with the source, the interpreter asks the user if he wants to continue or to rollback, in case he wants to continue the source is updated with the consistent version of the view, otherwise the modifications are discarded.
+At any point the user can call the  \textit{put}, even when he had not performed any modification. In case the sequence of modifications results in an updated view that is not consistent with the source, the interpreter asks the user if he wants to continue or to rollback. In case he wants to continue the source is updated with the consistent version of the view, otherwise the modifications are discarded.

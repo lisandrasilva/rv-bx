@@ -1,14 +1,14 @@
 \section{Regular Expressions and Finite State Machine}
 
-Regular expressions and Finite Automata (FA) represent a valuable concept in theoretical computer science. Their equivalence is well known dating back to the Kleen's paper in 1956. REs are well suited for human users and therefore often used as interfaces to specify certain patterns or languages, while automata immediately translate to efficient data structures and are suited for programming tasks. Obviously this fact raises the interest in conversion algorithms between them ~\cite{refa}. 
+Regular expressions and Finite Automata (FA) represent a valuable concept in theoretical computer science. Their equivalence is well known dating back to Kleene's paper in 1956. REs are well suited for human users and therefore often used as interfaces to specify certain patterns or languages, while automata immediately translate to efficient data structures and are suited for programming tasks. Obviously this fact raises the interest in conversion algorithms between them ~\cite{refa}. 
 
-Moreover, when reasoning about the specifications of properties for RV, it can be useful to convert between them and observe how changes in one of the specifications are reflected in the other. That was the main motivation for use Bidirectional Transformations between these two types of specifications.
+Moreover, when reasoning about the specifications of properties for RV, it can be useful to convert between them and observe how changes in one of the specifications are reflected in the other. This was the main motivation for use Bidirectional Transformations between these two types of specifications.
 
-The next sections will describe some formal definitions of RE and FA as well as the known algorithms to convert between them. 
+The next sections will describe some formal definitions of RE and FA as well as some of the well known algorithms to convert between them. 
 
 \subsection{Formal definitions}
 \label{definitions}
-Before introduce the known algorithms for conversion it is useful to present and formally describe the two types of automata. 
+Before introducing the conversion algorithms it is useful to present and formally describe the two types of automata. 
 
 \subsubsection{Regular Expressions} 
 Given a vocabulary $\Sigma$, a symbol $a \in \Sigma$ and the regular expressions $s$ and $t$, then RE can be defined inductively as following: 
@@ -34,9 +34,9 @@ The language defined by a regular expression $r$, denoted by $L(r)$, is defined 
     A = (Q,\Sigma,q_0,F,\delta)
 \end{equation*}
 
-where, $Q$ is the finite set of states, $\Sigma$ is the finite set of input symbols (the vocabulary), $q_0 \in Q$ is the initial states, $F \in Q$ is the set of accepting (final) states, and $\delta : Q \times (\Sigma \cup \{\epsilon\}) \rightarrow 2^Q$ is the \textit{transition function}. 
+Where $Q$ is a finite set of states, $\Sigma$ is a finite set of input symbols (the vocabulary), $q_0 \subseteq Q$ is the set of initial states, $F \subseteq Q$ is the set of accepting (final) states, and $\delta : Q \times (\Sigma \cup \{\epsilon\}) \rightarrow 2^Q$ is the \textit{transition function}. 
 
-As the name itself pronounces, the NDFA can transit to one or more states when consuming a given symbol. The next state is computed as the set of all possible states to which is possible to transit. The NDFA can have \textit{$\epsilon$-transitions}, transitions without consuming any input symbol, i.e. the empty string $\epsilon$ is a possible input. 
+As the name suggests, the NDFA can transit to one or more states when consuming a given symbol. The next state is computed as the set of all possible states to which is possible to transit. The NDFA can have \textit{$\epsilon$-transitions}, transitions without consuming any input symbol, i.e. the empty string $\epsilon$ is a possible input. 
 If the NDFA has no $\epsilon$-transitions, i.e. is $\epsilon$-free, then the transition function can be restricted to $\delta : Q \times \Sigma \rightarrow 2^Q$.
 
 \subsubsection{Deterministic Finite Automata (DFA)} \textit{Deterministic} refers to the uniqueness of the computation. It can be seen as a special kind of NDFA in which for each state and symbol, the result of the transition has exactly one state. Following is the formal definition of a DFA:
@@ -45,13 +45,14 @@ If the NDFA has no $\epsilon$-transitions, i.e. is $\epsilon$-free, then the tra
     A = (Q,\Sigma,q_0,F,\delta)
 \end{equation*}
 
-where, $Q$ is the finite set of states, $\Sigma$ is the finite set of input symbols (the vocabulary), $q_0 \in Q$ is the initial state, $F \in Q$ is the set of accepting (final) states, and $\delta : Q \times \Sigma \rightarrow Q$ is the \textit{transition function}. 
+Where $Q$ is the finite set of states, $\Sigma$ is the finite set of input symbols (the vocabulary), $q_0 \in Q$ is the initial state, $F \subseteq Q$ is the set of accepting (final) states, and $\delta : Q \times \Sigma \rightarrow Q$ is the \textit{transition function}. 
 
 \subsection{Conversion algorithms}
-This sections recalls the most prominent algorithms for conversion from a RE to a DFA. 
+\label{convert}
+This sections review two of the most popular algorithms for conversion from a RE to a finite state automata. 
 
 \subsubsection{Thompson's construction algorithm}
-Converts a RE into an equivalent NDFA. The algorithm splits an expression into its constituent sub-expressions and works recursively applying the next rules: 
+Converts a RE into an equivalent NDFA. The algorithm splits an expression into its constituent sub-expressions and works recursively applying the following rules: 
 
 \begin{itemize}
     \item  $\bf e = \emptyset$ is converted in:
@@ -108,13 +109,13 @@ For instance, the regular expression $\bf e = (\epsilon + a^*b)$ would be conver
 
 
 \subsubsection{Glushkov's construction algorithm}
-Is another well-known algorithm to convert a give RE into a NDFA. Is similar to Thompson's construction, once the $\epsilon$-transitions are removed. Following are the construction steps to create a NDFA that accepts the language $L(e)$ accepted by the RE $e$:
+Is another well-known algorithm to convert a give RE into a NDFA. It is similar to Thompson's construction, once the $\epsilon$-transitions are removed. Following are the construction steps to create a NDFA that accepts the language $L(e)$ accepted by the RE $e$:
 
 \begin{itemize}
-    \item \textbf{Step 1} - linearisation of the expression. Each letter of the alphabet appearing in the expression e is renamed, so that each letter occurs at most once in the new expression $e'$. Let $A$ be the old alphabet and let $B$ be the new one;
+    \item \textbf{Step 1} - linearisation of the expression. Each letter of the alphabet appearing in the expression $e$ is renamed, so that each letter occurs at most once in the new expression $e'$. Let $A$ be the old alphabet and let $B$ be the new one;
     \item \textbf{Step 2a} - the following sets are computed:
     \begin{itemize}
-        \item $P(e') = \{\ x \in B\quad |\quad xB^* \cap L(e') \neq \emptyset\ \}$  is the set of symbols which occurs as first letter of a word of $L(e')$. Can be defined inductively:
+        \item $P(e') = \{\ x \in B\quad |\quad xB^* \cap L(e') \neq \emptyset\ \}$  is the set of symbols which occur as a first letter of a word of $L(e')$. It can be defined inductively as:
         
         \begin{flalign*}
             P(\emptyset) & = P(\epsilon) = \emptyset \\
@@ -125,13 +126,13 @@ Is another well-known algorithm to convert a give RE into a NDFA. Is similar to 
         \end{flalign*}
         
         
-        \item $D(e') = \{\ y \in B\quad |\quad B^*y \cap L(e') \neq \emptyset\ \}$ is the set of symbols that can end a word of $L(e')$. Can be defined inductively with the same rules of $P$ except for the product where
+        \item $D(e') = \{\ y \in B\quad |\quad B^*y \cap L(e') \neq \emptyset\ \}$ is the set of symbols that can end a word of $L(e')$. It can be defined inductively with the same rules of $P$ except for the product, in which case, 
         
         \begin{equation*}
             D(s\ .\ t) = D(t)\ \cup \ D(s)\Lambda(t) 
         \end{equation*}
         
-        \item $F(e') = \{\ u \in B^2\quad |\quad B^*uB^* \cap L(e') \neq \emptyset\ \}$ is the set f symbol pair that can occur in words of $L(e')$. Can be defined inductively as follows: 
+        \item $F(e') = \{\ u \in B^2\quad |\quad B^*uB^* \cap L(e') \neq \emptyset\ \}$ is the set f symbol pairs that can occur in words of $L(e')$. It can be defined inductively as follows: 
         \begin{flalign*}
             F(\emptyset) & = F(\epsilon) = F(a) = \emptyset \text{, for each letter $a$} \\
             F(s+t) & = F(s) \cup F(t) \\
@@ -160,7 +161,7 @@ Is another well-known algorithm to convert a give RE into a NDFA. Is similar to 
     \item \textbf{Step 4} - erasing the delinearization, giving to each letter of $B$ the letter of $A$.
 \end{itemize}
 
-Given the regular expression $\bf e = (a(ab)^*)^* + (ba)^*$, would produce the NDFA in Figure \ref{fig:ndfaG}, without performing Step 4, to perform this step one only needs to remove the index from each symbol in the nodes.
+Given the regular expression $\bf e = (a(ab)^*)^* + (ba)^*$, it would produce the NDFA in Figure \ref{fig:ndfaG}, without performing Step 4, to perform this step one only needs to remove the index from each symbol in the nodes.
 
 \begin{figure}
     \centering
@@ -170,7 +171,7 @@ Given the regular expression $\bf e = (a(ab)^*)^* + (ba)^*$, would produce the N
 \end{figure}
 
 \subsubsection{Powerset construction algorithm}
-Converts a NDFA into a DFA, which recognize the same formal language. Recall the structure of a NDFA in Section \ref{definitions}, the corresponding DFA has the set of states $Q_D$, where each state corresponds to subsets of $Q_N$. 
+Converts a NDFA into a DFA, which recognizes the same formal language. Recall the structure of a NDFA in Section \ref{definitions}, the corresponding DFA has the set of states $Q_D$, where each state corresponds to subsets of $Q_N$. 
 
 The initial state of the DFA is the set $\{q_0\}$ where $q_0$ is the initial state of the NDFA. In case of a NDFA has $\epsilon$-transitions then the initial state of the DFA - $q_{0D}$ - has the initial state of the NDFA - $q_{0N}$ - plus the states reachable from that state through $\epsilon$-transitions - called $\epsilon$-\textit{closure}:
 \begin{equation*}
@@ -182,6 +183,11 @@ Starting from the initial state $q_{0D}$, each new state is computed from anothe
     \item $q_{0D} \in Q_D$
     \item $qs \in Q_D \Rightarrow \{ d\ |\ (o,y,d) \in \delta_{NDFA} \wedge o \in qs\} \in Q_Dv , \quad \forall y \in \Sigma$
 \end{itemize}
+
+%Let $S_{ad}$ be an already discovered %state and $S_{nd}$ be the new  %discovered state, then for each symbol %$y \in \Sigma$, each new state is %computed as follows:
+%\begin{equation*}
+%    S_{nd} = \cup \{ d\ |\ (o,y,d) \in %\delta_{NDFA} \wedge o \in S_{ad} %\}
+%\end{equation*}
 
 The transition function of the DFA maps a state $S$ and the input symbol $y$ to the respective computed state:
 

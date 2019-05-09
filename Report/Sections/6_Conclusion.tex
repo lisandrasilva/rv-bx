@@ -1,6 +1,9 @@
 \section{Conclusions and Future work}
 The initial goal was to implement the BX as a composition of two BX's, one between RE and NDFA and another between NDFA and DFA. However, only the second one was defined. As future work it is still necessary to implement the first one, between RE and NDFA, considering as the \textit{get} function the Glushkov's construction algorithm. 
 
-As said in Section \ref{chapter:BX}, this was an exploratory work that used the `naive' way to implement a BX where the two functions \textit{get} and \textit{put} separately. To (cleverly) avoid the need of a formal proof that the two functions are \textit{well-behaved} it would be very useful to use a \textit{bidirectional programming} language to implement the put algorithm. We suggest a \textit{putback based} approach, more concretely BiGUL.
+Another possibility worth exploring would be to use other forms of transforming RE into finite state machines, namely those based in Brzozowski derivative \cite{Brzozowski64derivativesof}. These transformations generate a DFA whose states are themselves RE that capture the language to be recognized starting at that state. 
+This holographic feeling of the produced automata make them particularly suited to think in the transformations as BX.
+
+As said in Section \ref{chapter:BX}, this was an exploratory work that used the `naive' way to implement a BX where the two functions \textit{get} and \textit{put} separately. To avoid the need of a formal proof that the two functions are \textit{well-behaved} it would be very useful to use a \textit{bidirectional programming} language to implement the put algorithm. We suggest a \textit{putback based} approach, more concretely BiGUL.
 
 Finally, some work has being done in translation between specification languages, a challenge for the future could be implement synchronizations between another specification languages, namely Linear Temporal Logic and Context Free Grammars.
