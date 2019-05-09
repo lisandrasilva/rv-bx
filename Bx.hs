@@ -18,9 +18,10 @@ import Ndfa2Dfa
 putNdfa :: Ndfa (Indexed Char) Char 
         -> Dfa [Indexed Char] Char
         -> Error (Ndfa (Indexed Char) Char)
-putNdfa ndfa@(Ndfa v1 q1 s1 z1 delta1) dfa@(Dfa v2 q2 s2 z2 delta2) = 
-    if wellBuilt dfa then putNdfa1 ndfa dfa
-    else Error "View is not correct"
+putNdfa ndfa dfa = 
+    case wellBuilt dfa of 
+      Ok True -> Ok (putNdfaStruct ndfa dfa)
+      Error m -> Error m
 
 {-  Checks if a DFA is well built (assuming that it was originated from a glushkov Ndfa 
     with powerset construction):
@@ -32,19 +33,35 @@ putNdfa ndfa@(Ndfa v1 q1 s1 z1 delta1) dfa@(Dfa v2 q2 s2 z2 delta2) =
           - the destination nodes must be prefixed with 'sy'
       - Initial state cannot be modified
  -}
-wellBuilt :: Dfa [Indexed Char] Char -> Bool
-wellBuilt (Dfa v q s z delta) = (noRepetitions $ map fst delta) && 
-                                 (sort $ nub q) == (sort $ nub $ (reachableNodes delta [s] [])) && 
-                                 q \\ (reachableNodes atled z []) == [] &&
-                                 wellEdge delta &&
-                                 s == [(I '_' 0)] &&
-                                 z \\ q == []
+wellBuilt :: Dfa [Indexed Char] Char -> Error Bool
+wellBuilt (Dfa v q s z delta) = do u <- uniqueTransitionSymbol
+                                   r <- reachableFromStartNode
+                                   e <- everyReachFinalNode
+                                   a <- allEdgesCorrect
+                                   s <- staticInitialState
+                                   f <- finalStatesCorrect
+                                   return (u && r && e && a && s && f)
     where atled = [((d,y),o) | ((o,y),d) <- delta]
           wellEdge [] = True
           wellEdge (((_,y),ds):xs) = (all (== y) $ map getSymbol ds) && 
                                      (noRepetitions $ map getIndex ds) && 
                                      y `elem` v &&
                                      wellEdge xs
+          uniqueTransitionSymbol = if noRepetitions $ map fst delta then Ok True
+                               else Error "Every transition from Node 'x' with symbol 's' must be unique"
+          reachableFromStartNode = if (sort $ nub q) == (sort $ nub $ (reachableNodes delta [s] []))
+                                      then Ok True
+                                   else Error "Every Node 'x' must be reachable from the start node"
+          everyReachFinalNode = if (q \\ (reachableNodes atled z []) == []) then Ok True
+                                else Error "Every node must reach an accepting node"
+          allEdgesCorrect = if wellEdge delta then Ok True
+                            else Error "Transitions are not well built"
+          staticInitialState = if s == [(I '_' 0)] then Ok True
+                               else Error "Initial state cannot be changed"
+          finalStatesCorrect = if z \\ q == [] then Ok True
+                               else Error "Final states are not in set of states"
+
+
 
 {- Given the transition table and a list of states computes the list of reachable states from that list -}
 reachableNodes :: Eq st => [((st, sy), st)] -> [st] -> [st] -> [st]
@@ -57,8 +74,8 @@ reachableNodes delta (n:ns) acc = reachableNodes delta x (n:acc)
 putNdfa' :: (Ord st, Ord sy) => Ndfa st sy -> Int -> Dfa [st] sy -> Error (Ndfa st sy)
 putNdfa' (Ndfa v1 q1 s1 z1 d1) n (Dfa v2 q2 s2 z2 []) = Ok (Ndfa v q s z d)
 -}
-putNdfa1 :: (Ord st, Ord sy) => Ndfa st sy  -> Dfa [st] sy -> Error (Ndfa st sy)
-putNdfa1 (Ndfa v1 q1 s1 z1 d1) (Dfa v2 q2 s2 z2 d2) = Ok (Ndfa v q s z d)
+putNdfaStruct :: (Ord st, Ord sy) => Ndfa st sy  -> Dfa [st] sy -> Ndfa st sy
+putNdfaStruct (Ndfa v1 q1 s1 z1 d1) (Dfa v2 q2 s2 z2 d2) = Ndfa v q s z d
     where v = v2
           q = nub $ concat q2
           s = s1
@@ -69,8 +86,8 @@ putNdfa1 (Ndfa v1 q1 s1 z1 d1) (Dfa v2 q2 s2 z2 d2) = Ok (Ndfa v q s z d)
                         else f t cz2
 
 getTable :: (Ord st, Ord sy) => [((st,sy),st)]  -> [((([st],sy),[st]),[st])] -> [[st]] -> [((st,sy),st)]
-getTable [] ts q = let toAdd = filter (not . null . snd) [ (((os,d),ds\\rs)) | (((os,d),ds),rs) <- ts ]
-                   in concat $ map (`rearrangeS` q) toAdd
+getTable [] dfaT q = let toAdd = filter (not . null . snd) [ (((os,d),ds\\rs)) | (((os,d),ds),rs) <- dfaT]
+                     in concat $ map (`rearrangeS` q) toAdd
 getTable (t@((o,s),d):ts) dfaT q = 
         let relS = [ x | x <- q , o `elem` x ]
             trns = [ 1 | (((os,sym),ds),rs) <- dfaT , os `elem` relS , sym == s , d `elem` ds]
@@ -108,8 +125,6 @@ splitEdges (edge@((o,y),d):t) ((os,symb),ds) =
    from the origins nodes that also appear in other nodes, since it would create inconsistencies.
 -}
 rearrangeS :: Eq st => (([st], sy), [st]) -> [[st]] -> [((st, sy), st)]
-rearrangeS ((os,sy),dsts) q = let allEdges = [((o,sy),dd) | o <- os, dd <- dsts]
-                                  possible = [((o,sy),dd) | o <- os \\ (concat $ delete os q), dd <- dsts]
-                              in case possible of
-                                    [] -> allEdges
-                                    x  -> x
+rearrangeS ((os,sy),dsts) q = let min = [((o,sy),dd) | o <- os \\ (concat $ delete os q), dd <- dsts]
+                              in if null min then [((o,sy),dd) | o <- os, dd <- dsts]
+                                 else min 

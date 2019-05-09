@@ -103,21 +103,23 @@ menucycle nfa dfa = do putStrLn $ unlines $ help
                        displayFADot nfaDotFile nfa
                        displayFADot dfaDotFile dfa
                        com <- readCom
-                       putStrLn ("Command: "  ++ (show com))
+                       putStrLn ("\nCommand: "  ++ (show com))
                        res <- executeCommand com nfa dfa
                        case res of
-                          Left (Error msg)  -> (putStrLn msg) >> menucycle nfa dfa
+                          Left (Error msg)  -> (putStrLn ("Error:  " ++ msg))
+                                                  >> menucycle nfa dfa
                           Left (Ok (nfa',dfa')) -> menucycle nfa' dfa'
                           Right r -> return r
-    where help = ["Available commands are:"
-                  ,"     . addT state label state"
-                  ,"     . remT state label state"
-                  ,"     . remS state"
-                  ,"     . put"
-                  ,"     . quit" , ""
-                  ,"Where states are lists of symbols and a label is a single character"
-                  , "Example:  addT [a1 a2] c [c1]"
-                  ]
+    where help = ["\n\n\n\n\n\n\n\n\n\n"
+                 ,"Available commands are:"
+                 ,"     . addT state label state"
+                 ,"     . remT state label state"
+                 ,"     . remS state"
+                 ,"     . put"
+                 ,"     . quit" , ""
+                 ,"Where states are lists of symbols and a label is a single character"
+                 , "Example:  addT [a1 a2] c [c1]"
+                 ]
 
 
 dfaDotFile = "_dfa.dot"
