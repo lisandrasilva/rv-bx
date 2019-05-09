@@ -65,3 +65,12 @@ When wanting to explore the _put_ and _get_ functions of the BX run the command:
 ```
 
 This command will display both the NDFA and DFA to the given RE and also a menu. You can use the commands to change the view (DFA) and put it back into the NDFA with the command _put_.
+
+As `re` is a RE present in the `Examples.hs` file, after running the above command one can run the following sequence of commands to edit the view and to put back the changes into the source:
+
+```bash
+addT [a1 a2] c [c1]
+addT [c1] b [b3]
+remT [a2] b [b3]
+put
+```
